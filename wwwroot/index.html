@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark light" />
+<title>DST MC I18n Tool · Minecraft 模组本地化</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+<!-- ============ SVG 图标库（全部内联，无外部资源） ============ -->
+<svg xmlns="http://www.w3.org/2000/svg" class="svg-sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2"/><path d="M12 3.4a15.2 15.2 0 0 1 0 17.2a15.2 15.2 0 0 1 0-17.2z"/><path d="M6.2 5.4c1.7 1.5 3.4 2.4 5.8 2.4s4.1-.9 5.8-2.4"/></symbol>
+  <symbol id="i-package" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8"/><path d="M8 11h5"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-folder-open" viewBox="0 0 24 24"><path d="M6 14l1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="m5 3 14 9-14 9V3z"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></symbol>
+  <symbol id="i-drive" viewBox="0 0 24 24"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></symbol>
+  <symbol id="i-archive" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></symbol>
+  <symbol id="i-x-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m22 4-10 10.01-3-3"/></symbol>
+</svg>
+
+<div class="app">
+  <!-- ================= 顶部栏 ================= -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark"><svg class="icon" viewBox="0 0 24 24"><use href="#i-logo"/></svg></span>
+      <span class="brand-text">
+        <strong>DST MC I18n Tool</strong>
+        <small>Minecraft 模组本地化工作台</small>
+      </span>
+    </div>
+
+    <div class="topbar-workspace">
+      <button class="workspace-chip" id="workspace-chip" title="点击切换工作目录">
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-folder"/></svg>
+        <span class="workspace-path" id="workspace-path">未选择工作目录</span>
+        <span class="workspace-caret"><svg class="icon" viewBox="0 0 24 24"><use href="#i-chevron-down"/></svg></span>
+      </button>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" id="btn-pick-folder">
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-folder-open"/></svg><span>打开文件夹</span>
+      </button>
+      <button class="btn btn-icon" id="btn-theme" title="切换明暗主题" aria-label="切换明暗主题">
+        <svg class="icon theme-icon-dark" viewBox="0 0 24 24"><use href="#i-sun"/></svg>
+        <svg class="icon theme-icon-light" viewBox="0 0 24 24"><use href="#i-moon"/></svg>
+      </button>
+      <button class="btn btn-icon" id="btn-goto-settings" title="设置" aria-label="设置">
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-settings"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="shell">
+    <!-- ================= 侧边导航 ================= -->
+    <aside class="sidebar">
+      <nav class="nav" id="nav">
+        <button class="nav-item active" data-page="mods">
+          <svg class="icon" viewBox="0 0 24 24"><use href="#i-package"/></svg>
+          <span class="nav-label">模组本地化</span>
+          <span class="nav-badge" id="nav-badge-mods" hidden></span>
+        </button>
+        <button class="nav-item" data-page="kubejs">
+          <svg class="icon" viewBox="0 0 24 24"><use href="#i-code"/></svg>
+          <span class="nav-label">KubeJS</span>
+          <span class="nav-badge" id="nav-badge-kubejs" hidden></span>
+        </button>
+        <button class="nav-item" data-page="ftb">
+          <svg class="icon" viewBox="0 0 24 24"><use href="#i-book"/></svg>
+          <span class="nav-label">FTB Quests</span>
+          <span class="nav-badge" id="nav-badge-ftb" hidden></span>
+        </button>
+        <div class="nav-sep"></div>
+        <button class="nav-item" data-page="settings">
+          <svg class="icon" viewBox="0 0 24 24"><use href="#i-settings"/></svg>
+          <span class="nav-label">设置</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="mini-card">
+          <div class="mini-card-title">工作目录</div>
+          <div class="mini-card-path" id="sidebar-workspace">尚未选择</div>
+          <div class="mini-card-actions">
+            <button class="mini-card-btn" id="btn-sidebar-pick">选择目录</button>
+            <button class="mini-card-btn" id="btn-sidebar-reveal" title="在资源管理器中打开">打开文件夹</button>
+            <button class="mini-card-btn" id="btn-sidebar-browse" title="使用内置目录浏览器">浏览目录…</button>
+          </div>
+        </div>
+        <div class="sidebar-version">v1.1.0 · 离线运行</div>
+      </div>
+    </aside>
+
+    <!-- ================= 主内容区 ================= -->
+    <main class="content" id="content">
+
+      <!-- ---------- 页面：模组本地化 ---------- -->
+      <section class="page" id="page-mods">
+        <div class="page-head">
+          <div class="page-head-text">
+            <h1>模组本地化</h1>
+            <p class="page-sub">扫描整合包 <code>mods/</code> 目录，提取并翻译模组语言文件</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn" id="btn-mods-refresh">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-refresh"/></svg><span>重新扫描</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="empty-state" id="mods-empty" hidden>
+          <div class="empty-illustration">
+            <svg class="icon" viewBox="0 0 24 24"><use href="#i-folder-open"/></svg>
+          </div>
+          <h2>还没有选择工作目录</h2>
+          <p>选择一个整合包或 <code>.minecraft</code> 目录，工具会自动扫描 <code>mods/</code>、<code>kubejs/</code> 与 <code>config/ftbquests/</code>。</p>
+          <button class="btn btn-primary btn-lg" id="btn-empty-pick">
+            <svg class="icon" viewBox="0 0 24 24"><use href="#i-folder-open"/></svg><span>选择工作目录</span>
+          </button>
+        </div>
+
+        <div id="mods-body" hidden>
+          <div class="stat-row" id="mods-stats"></div>
+          <div class="toolbar">
+            <div class="search-field">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-search"/></svg>
+              <input type="text" id="mods-search" placeholder="搜索模组名称 / modid / 文件名…" autocomplete="off" />
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="mods-only-missing" />
+              <span class="switch-track"></span>
+              <span>只看缺少 zh_cn</span>
+            </label>
+          </div>
+          <div class="mod-grid" id="mod-grid"></div>
+          <div class="list-empty" id="mods-list-empty" hidden>没有匹配的模组</div>
+        </div>
+
+        <!-- 模组详情：语言文件列表 -->
+        <div id="mod-detail" hidden>
+          <div class="breadcrumb">
+            <button class="crumb-link" id="btn-mod-back">模组本地化</button>
+            <svg class="icon crumb-sep" viewBox="0 0 24 24"><use href="#i-chevron-right"/></svg>
+            <span class="crumb-current" id="mod-detail-name">模组</span>
+          </div>
+          <div class="mod-hero" id="mod-hero"></div>
+          <div class="section-title">语言文件</div>
+          <div class="file-list" id="mod-files"></div>
+        </div>
+      </section>
+
+      <!-- ---------- 页面：KubeJS ---------- -->
+      <section class="page" id="page-kubejs" hidden>
+        <div class="page-head">
+          <div class="page-head-text">
+            <h1>KubeJS</h1>
+            <p class="page-sub">翻译 <code>kubejs/assets/**/lang</code> 中的脚本语言文件</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn" id="btn-kubejs-refresh">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-refresh"/></svg><span>重新扫描</span>
+            </button>
+          </div>
+        </div>
+        <div class="empty-state" id="kubejs-empty" hidden>
+          <div class="empty-illustration"><svg class="icon" viewBox="0 0 24 24"><use href="#i-code"/></svg></div>
+          <h2>未找到 KubeJS 语言文件</h2>
+          <p>请选择一个包含 <code>kubejs/assets/&lt;命名空间&gt;/lang/en_us.json</code> 的整合包目录。</p>
+          <button class="btn btn-primary" id="btn-kubejs-pick">选择工作目录</button>
+        </div>
+        <div id="kubejs-body" hidden>
+          <div class="stat-row" id="kubejs-stats"></div>
+          <div class="toolbar">
+            <div class="search-field">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-search"/></svg>
+              <input type="text" id="kubejs-search" placeholder="搜索命名空间 / 文件路径…" autocomplete="off" />
+            </div>
+            <span class="spacer"></span>
+            <button class="btn btn-sm" id="btn-kubejs-export-lang">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-download"/></svg><span>导出 zh_cn.json</span>
+            </button>
+            <button class="btn btn-sm btn-primary" id="btn-kubejs-overlay">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-archive"/></svg><span>生成覆盖包</span>
+            </button>
+          </div>
+          <div class="file-list" id="kubejs-files"></div>
+          <div class="list-empty" id="kubejs-list-empty" hidden>没有匹配的语言文件</div>
+        </div>
+      </section>
+
+      <!-- ---------- 页面：FTB Quests ---------- -->
+      <section class="page" id="page-ftb" hidden>
+        <div class="page-head">
+          <div class="page-head-text">
+            <h1>FTB Quests</h1>
+            <p class="page-sub">翻译 <code>config/ftbquests/quests/lang</code> 中的 SNBT 任务文本</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn" id="btn-ftb-refresh">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-refresh"/></svg><span>重新扫描</span>
+            </button>
+          </div>
+        </div>
+        <div class="empty-state" id="ftb-empty" hidden>
+          <div class="empty-illustration"><svg class="icon" viewBox="0 0 24 24"><use href="#i-book"/></svg></div>
+          <h2>未找到 FTB Quests 语言文件</h2>
+          <p>请选择一个包含 <code>config/ftbquests/quests/lang/en_us.snbt</code> 的整合包目录。</p>
+          <button class="btn btn-primary" id="btn-ftb-pick">选择工作目录</button>
+        </div>
+        <div id="ftb-body" hidden>
+          <div class="stat-row" id="ftb-stats"></div>
+          <div class="toolbar">
+            <div class="search-field">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-search"/></svg>
+              <input type="text" id="ftb-search" placeholder="搜索任务键 / 文件路径…" autocomplete="off" />
+            </div>
+            <span class="spacer"></span>
+            <button class="btn btn-sm" id="btn-ftb-export-lang">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-download"/></svg><span>导出 zh_cn.json</span>
+            </button>
+            <button class="btn btn-sm btn-primary" id="btn-ftb-overlay">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-archive"/></svg><span>生成覆盖包</span>
+            </button>
+          </div>
+          <div class="file-list" id="ftb-files"></div>
+          <div class="list-empty" id="ftb-list-empty" hidden>没有匹配的语言文件</div>
+        </div>
+      </section>
+
+      <!-- ---------- 页面：文件编辑（键值表） ---------- -->
+      <section class="page" id="page-file" hidden>
+        <div class="page-head">
+          <div class="page-head-text with-back">
+            <button class="btn btn-icon" id="btn-file-back" title="返回">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-chevron-left"/></svg>
+            </button>
+            <div>
+              <h1 id="file-title">语言文件</h1>
+              <p class="page-sub" id="file-sub"></p>
+            </div>
+          </div>
+          <div class="page-actions">
+            <button class="btn" id="btn-file-export-lang">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-download"/></svg><span>导出 zh_cn.json</span>
+            </button>
+            <button class="btn btn-primary" id="btn-file-export-pack">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-archive"/></svg><span>生成资源包</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 翻译工具条 -->
+        <div class="translate-bar card">
+          <div class="tb-field">
+            <label class="tb-label">翻译模式</label>
+            <div class="segmented" id="seg-mode" role="tablist">
+              <button class="seg-btn active" data-value="llm" role="tab">
+                <svg class="icon" viewBox="0 0 24 24"><use href="#i-sparkles"/></svg><span>LLM</span>
+              </button>
+              <button class="seg-btn" data-value="machine" role="tab">
+                <svg class="icon" viewBox="0 0 24 24"><use href="#i-globe"/></svg><span>机翻</span>
+              </button>
+            </div>
+          </div>
+          <div class="tb-field">
+            <label class="tb-label" for="sel-target-lang">目标语言</label>
+            <select class="select" id="sel-target-lang">
+              <option value="zh_cn">简体中文（zh_cn）</option>
+              <option value="zh_tw">繁體中文（zh_tw）</option>
+              <option value="ja_jp">日本語（ja_jp）</option>
+              <option value="ko_kr">한국어（ko_kr）</option>
+              <option value="ru_ru">Русский（ru_ru）</option>
+            </select>
+          </div>
+          <label class="switch tb-switch">
+            <input type="checkbox" id="chk-skip-existing" checked />
+            <span class="switch-track"></span>
+            <span>跳过已有译文</span>
+          </label>
+          <span class="spacer"></span>
+          <button class="btn btn-ghost" id="btn-glossary-toggle">
+            <svg class="icon" viewBox="0 0 24 24"><use href="#i-list"/></svg><span>术语表</span>
+          </button>
+          <button class="btn btn-primary" id="btn-start-translate">
+            <svg class="icon" viewBox="0 0 24 24"><use href="#i-play"/></svg><span>开始翻译</span>
+          </button>
+        </div>
+
+        <div class="glossary-panel card" id="glossary-panel" hidden>
+          <div class="glossary-head">
+            <div>
+              <strong>术语表</strong>
+              <span class="hint">每行一条 <code>key:value</code>，或 <code>原文=译文</code>，将作为强制术语提供给翻译引擎</span>
+            </div>
+            <button class="btn btn-icon btn-sm" id="btn-glossary-close" title="收起">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-close"/></svg>
+            </button>
+          </div>
+          <textarea id="glossary-input" class="textarea mono" rows="5" spellcheck="false"
+            placeholder="item.create.mechanical_press:机械压印机&#10;kinetic_mechanism=动力机构&#10;cogwheel=齿轮"></textarea>
+        </div>
+
+        <!-- 翻译任务面板 -->
+        <div class="job-panel card" id="job-panel" hidden>
+          <div class="job-head">
+            <div class="job-title-wrap">
+              <span class="job-dot" id="job-dot"></span>
+              <strong id="job-title">翻译任务</strong>
+              <span class="job-status" id="job-status">准备中</span>
+            </div>
+            <div class="job-actions">
+              <button class="btn btn-sm" id="btn-job-apply" disabled>
+                <svg class="icon" viewBox="0 0 24 24"><use href="#i-check"/></svg><span>应用结果</span>
+              </button>
+              <button class="btn btn-sm btn-danger-ghost" id="btn-job-discard" disabled>
+                <svg class="icon" viewBox="0 0 24 24"><use href="#i-trash"/></svg><span>丢弃结果</span>
+              </button>
+              <button class="btn btn-sm btn-danger-ghost" id="btn-job-restore-all" disabled>
+                <svg class="icon" viewBox="0 0 24 24"><use href="#i-refresh"/></svg><span>全部还原</span>
+              </button>
+              <button class="btn btn-sm btn-danger-ghost" id="btn-job-cancel">
+                <svg class="icon" viewBox="0 0 24 24"><use href="#i-x-circle"/></svg><span>取消任务</span>
+              </button>
+              <button class="btn btn-icon btn-sm" id="btn-job-close" title="关闭面板">
+                <svg class="icon" viewBox="0 0 24 24"><use href="#i-close"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="progress">
+            <div class="progress-fill" id="job-progress-fill" style="width:0%"></div>
+          </div>
+          <div class="job-meta">
+            <span id="job-count">0 / 0</span>
+            <span class="spacer"></span>
+            <span id="job-detail"></span>
+          </div>
+          <div class="job-items" id="job-items"></div>
+        </div>
+
+        <!-- 键值表 -->
+        <div class="card table-card">
+          <div class="table-toolbar">
+            <div class="search-field">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-search"/></svg>
+              <input type="text" id="kv-search" placeholder="搜索 Key / 原文 / 译文…" autocomplete="off" />
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="chk-only-untranslated" />
+              <span class="switch-track"></span>
+              <span>只看未翻译</span>
+            </label>
+            <span class="spacer"></span>
+            <label class="checkbox">
+              <input type="checkbox" id="chk-select-all" />
+              <span>全选</span>
+            </label>
+            <button class="btn btn-sm" id="btn-copy-selected">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-copy"/></svg><span>复制选中</span>
+            </button>
+            <button class="btn btn-sm" id="btn-copy-all">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-copy"/></svg><span>复制全部译文</span>
+            </button>
+            <button class="btn btn-sm btn-danger-ghost" id="btn-restore-targets" title="清空本次会话中当前文档的全部译文">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-refresh"/></svg><span>还原译文</span>
+            </button>
+          </div>
+          <div class="table-scroll">
+            <table class="kv-table">
+              <thead>
+                <tr>
+                  <th class="col-check"></th>
+                  <th class="col-key">Key</th>
+                  <th class="col-source">原文</th>
+                  <th class="col-target">译文</th>
+                  <th class="col-status">状态</th>
+                </tr>
+              </thead>
+              <tbody id="kv-tbody"></tbody>
+            </table>
+            <div class="table-empty" id="kv-empty" hidden>没有匹配的条目</div>
+          </div>
+          <div class="table-foot">
+            <span id="kv-stats">0 条</span>
+            <span class="spacer"></span>
+            <span class="hint">译文修改会保存在本次会话中，并随导出一起写入</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- 页面：设置 ---------- -->
+      <section class="page" id="page-settings" hidden>
+        <div class="page-head">
+          <div class="page-head-text">
+            <h1>设置</h1>
+            <p class="page-sub">配置翻译引擎与默认参数，设置保存在本地配置文件中</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn" id="btn-settings-reload">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-refresh"/></svg><span>重新载入</span>
+            </button>
+            <button class="btn btn-primary" id="btn-settings-save">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-save"/></svg><span>保存设置</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <!-- LLM -->
+          <div class="card settings-card">
+            <div class="card-head">
+              <div class="card-head-icon"><svg class="icon" viewBox="0 0 24 24"><use href="#i-sparkles"/></svg></div>
+              <div>
+                <h3>LLM 翻译引擎</h3>
+                <p>使用大语言模型翻译，质量更好，可向用户询问专业术语</p>
+              </div>
+            </div>
+            <div class="field-grid">
+              <div class="field span-2">
+                <label for="set-llm-baseurl">Base URL</label>
+                <input type="text" id="set-llm-baseurl" class="input mono" placeholder="https://api.deepseek.com/v1" spellcheck="false" />
+              </div>
+              <div class="field span-2">
+                <label for="set-llm-apikey">API Key</label>
+                <div class="input-group">
+                  <input type="password" id="set-llm-apikey" class="input mono" placeholder="sk-..." spellcheck="false" autocomplete="off" />
+                  <button class="btn btn-sm btn-ghost" id="btn-toggle-apikey" type="button">显示</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="set-llm-model">模型</label>
+                <input type="text" id="set-llm-model" class="input mono" list="llm-model-options" placeholder="deepseek-flash" spellcheck="false" autocomplete="off" />
+                <datalist id="llm-model-options"></datalist>
+                <span class="field-hint">可从下拉候选选择，也可直接输入任意模型名</span>
+              </div>
+              <div class="field">
+                <label for="set-llm-temp">温度 <span class="field-value" id="val-temp">1.0</span></label>
+                <input type="range" id="set-llm-temp" class="range" min="0" max="2" step="0.1" value="1" />
+              </div>
+              <div class="field">
+                <label for="set-llm-maxtokens">Max Tokens</label>
+                <input type="number" id="set-llm-maxtokens" class="input" min="256" max="65536" step="256" value="4096" />
+              </div>
+              <div class="field">
+                <label for="set-batch">批量大小</label>
+                <input type="number" id="set-batch" class="input" min="1" max="200" step="1" value="20" />
+              </div>
+              <div class="field">
+                <label for="set-timeout">请求超时（秒）</label>
+                <input type="number" id="set-timeout" class="input" min="5" max="600" step="5" value="60" />
+              </div>
+              <div class="field">
+                <label for="set-target-lang">默认目标语言</label>
+                <select id="set-target-lang" class="select">
+                  <option value="zh_cn">简体中文（zh_cn）</option>
+                  <option value="zh_tw">繁體中文（zh_tw）</option>
+                  <option value="ja_jp">日本語（ja_jp）</option>
+                  <option value="ko_kr">한국어（ko_kr）</option>
+                  <option value="ru_ru">Русский（ru_ru）</option>
+                </select>
+              </div>
+              <div class="field span-2">
+                <label class="switch">
+                  <input type="checkbox" id="set-allow-questions" checked />
+                  <span class="switch-track"></span>
+                  <span>允许 LLM 在遇到不确定的专业术语时向用户提问</span>
+                </label>
+              </div>
+            </div>
+            <div class="card-foot">
+              <button class="btn" id="btn-test-llm">
+                <svg class="icon" viewBox="0 0 24 24"><use href="#i-zap"/></svg><span>测试 LLM 连接</span>
+              </button>
+              <span class="test-result" id="test-llm-result"></span>
+            </div>
+          </div>
+
+          <!-- 机翻 -->
+          <div class="card settings-card">
+            <div class="card-head">
+              <div class="card-head-icon alt"><svg class="icon" viewBox="0 0 24 24"><use href="#i-globe"/></svg></div>
+              <div>
+                <h3>机器翻译</h3>
+                <p>无需 API Key 的免费接口，适合快速预览，质量一般</p>
+              </div>
+            </div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="set-machine-provider">提供方</label>
+                <select id="set-machine-provider" class="select">
+                  <option value="auto">自动选择</option>
+                  <option value="google">Google 翻译</option>
+                  <option value="bing">Bing 翻译</option>
+                  <option value="custom">自定义接口</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="set-machine-key">接口 Key（可选）</label>
+                <input type="password" id="set-machine-key" class="input mono" placeholder="自定义接口的访问密钥" spellcheck="false" autocomplete="off" />
+              </div>
+              <div class="field span-2">
+                <label for="set-machine-endpoint">自定义 Endpoint</label>
+                <input type="text" id="set-machine-endpoint" class="input mono" placeholder="例如 https://translate.example.com/api" spellcheck="false" />
+                <span class="field-hint">仅当提供方选择「自定义接口」时使用</span>
+              </div>
+            </div>
+            <div class="card-foot">
+              <button class="btn" id="btn-test-machine">
+                <svg class="icon" viewBox="0 0 24 24"><use href="#i-zap"/></svg><span>测试机翻</span>
+              </button>
+              <span class="test-result" id="test-machine-result"></span>
+            </div>
+          </div>
+
+          <!-- 外观 -->
+          <div class="card settings-card">
+            <div class="card-head">
+              <div class="card-head-icon"><svg class="icon" viewBox="0 0 24 24"><use href="#i-sun"/></svg></div>
+              <div>
+                <h3>外观</h3>
+                <p>主题与界面偏好</p>
+              </div>
+            </div>
+            <div class="field-grid">
+              <div class="field span-2">
+                <label>界面主题</label>
+                <div class="theme-choices">
+                  <button class="theme-choice" data-theme-value="dark">
+                    <span class="theme-preview dark"></span>
+                    <span class="theme-name">深蓝白</span>
+                    <span class="theme-check"><svg class="icon" viewBox="0 0 24 24"><use href="#i-check"/></svg></span>
+                  </button>
+                  <button class="theme-choice" data-theme-value="light">
+                    <span class="theme-preview light"></span>
+                    <span class="theme-name">浅蓝黑</span>
+                    <span class="theme-check"><svg class="icon" viewBox="0 0 24 24"><use href="#i-check"/></svg></span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 关于 -->
+          <div class="card settings-card about-card">
+            <div class="card-head">
+              <div class="card-head-icon"><svg class="icon" viewBox="0 0 24 24"><use href="#i-info"/></svg></div>
+              <div>
+                <h3>关于</h3>
+                <p>DST MC I18n Tool v1.1.0</p>
+              </div>
+            </div>
+            <ul class="about-list">
+              <li><span>运行模式</span><strong>本地离线，自包含发布</strong></li>
+              <li><span>前端技术</span><strong>原生 HTML / CSS / JavaScript</strong></li>
+              <li><span>网络请求</span><strong>仅访问本机 <code>/api/*</code></strong></li>
+              <li><span>配置文件</span><strong>%APPDATA%\DstMcI18nTool\settings.json</strong></li>
+            </ul>
+          </div>
+
+          <!-- 翻译提示词 -->
+          <div class="card settings-card span-all">
+            <div class="card-head">
+              <div class="card-head-icon alt"><svg class="icon" viewBox="0 0 24 24"><use href="#i-list"/></svg></div>
+              <div>
+                <h3>翻译提示词</h3>
+                <p>自定义发送给 LLM 的系统提示词，留空则使用内置默认提示词</p>
+              </div>
+            </div>
+            <div class="field">
+              <textarea id="set-llm-prompt" class="textarea mono" rows="10" spellcheck="false"
+                placeholder="留空则使用内置默认提示词"></textarea>
+              <span class="field-hint" id="prompt-hint">留空则使用内置默认提示词（点击「填入默认提示词」可查看并在此基础上修改）</span>
+            </div>
+            <div class="card-foot">
+              <button class="btn" id="btn-fill-default-prompt">
+                <svg class="icon" viewBox="0 0 24 24"><use href="#i-copy"/></svg><span>填入默认提示词</span>
+              </button>
+              <button class="btn btn-danger-ghost" id="btn-reset-prompt">
+                <svg class="icon" viewBox="0 0 24 24"><use href="#i-refresh"/></svg><span>恢复默认</span>
+              </button>
+              <span class="test-result" id="prompt-result"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ================= 模态框：内置目录浏览器 ================= -->
+<div class="overlay" id="overlay-browse" hidden>
+  <div class="modal modal-browse" role="dialog" aria-modal="true" aria-labelledby="browse-title">
+    <header class="modal-head">
+      <h2 id="browse-title">选择工作目录</h2>
+      <button class="btn btn-icon btn-sm" data-close="overlay-browse" title="关闭">
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-close"/></svg>
+      </button>
+    </header>
+    <div class="modal-body">
+      <div class="browse-bar">
+        <select class="select select-drive" id="browse-drive"></select>
+        <button class="btn btn-icon btn-sm" id="browse-up" title="上一级">
+          <svg class="icon" viewBox="0 0 24 24"><use href="#i-arrow-up"/></svg>
+        </button>
+        <div class="browse-path mono" id="browse-path">—</div>
+        <button class="btn btn-icon btn-sm" id="browse-refresh" title="刷新">
+          <svg class="icon" viewBox="0 0 24 24"><use href="#i-refresh"/></svg>
+        </button>
+      </div>
+      <div class="browse-list" id="browse-list"></div>
+      <div class="browse-suggest" id="browse-suggest" hidden></div>
+      <div class="browse-hint">
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-info"/></svg>
+        <span>双击文件夹进入；带标记的目录包含对应内容，推荐选择整合包根目录。</span>
+      </div>
+    </div>
+    <footer class="modal-foot">
+      <span class="modal-foot-info" id="browse-selected"></span>
+      <span class="spacer"></span>
+      <button class="btn" data-close="overlay-browse">取消</button>
+      <button class="btn btn-primary" id="browse-confirm">使用此目录</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ================= 模态框：生成资源包 ================= -->
+<div class="overlay" id="overlay-pack" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pack-title">
+    <header class="modal-head">
+      <h2 id="pack-title">生成汉化资源包</h2>
+      <button class="btn btn-icon btn-sm" data-close="overlay-pack" title="关闭">
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-close"/></svg>
+      </button>
+    </header>
+    <div class="modal-body">
+      <div class="pack-preview">
+        <div class="pack-icon"><svg class="icon" viewBox="0 0 24 24"><use href="#i-archive"/></svg></div>
+        <div class="pack-preview-text">
+          <strong id="pack-preview-title">资源包将包含</strong>
+          <span id="pack-summary">语言文件与 pack.mcmeta</span>
+        </div>
+      </div>
+      <!-- 仅资源包模式：名称 / 版本号 / MC 版本 / pack_format -->
+      <div class="field-grid" id="pack-fields-resourcepack">
+        <div class="field span-2">
+          <label for="pack-name">资源包名称</label>
+          <input type="text" id="pack-name" class="input" placeholder="例如：机械动力 简体中文汉化包" />
+        </div>
+        <div class="field">
+          <label for="pack-version">资源包版本号</label>
+          <input type="text" id="pack-version" class="input mono" placeholder="1.0.0" value="1.0.0" />
+        </div>
+        <div class="field">
+          <label for="pack-mc">Minecraft 版本</label>
+          <select id="pack-mc" class="select">
+            <option value="" selected disabled>请选择版本…</option>
+            <option>1.16.5</option>
+            <option>1.17</option>
+            <option>1.18</option>
+            <option>1.18.2</option>
+            <option>1.19</option>
+            <option>1.19.2</option>
+            <option>1.19.3</option>
+            <option>1.19.4</option>
+            <option>1.20</option>
+            <option>1.20.1</option>
+            <option>1.20.2</option>
+            <option>1.20.3</option>
+            <option>1.20.4</option>
+            <option>1.20.5</option>
+            <option>1.20.6</option>
+            <option>1.21</option>
+            <option>1.21.1</option>
+            <option>1.21.2</option>
+            <option>1.21.3</option>
+            <option>1.21.4</option>
+            <option>1.21.5</option>
+          </select>
+        </div>
+        <div class="field span-2">
+          <label for="pack-format">pack_format（可选，手填优先）</label>
+          <input type="number" id="pack-format" class="input mono" placeholder="留空则按版本自动换算" min="1" max="999" />
+        </div>
+      </div>
+
+      <!-- 仅覆盖包模式：目标语言 / 包含范围 -->
+      <div class="field-grid" id="pack-fields-overlay" hidden>
+        <div class="field">
+          <label for="pack-overlay-lang">目标语言</label>
+          <select id="pack-overlay-lang" class="select">
+            <option value="zh_cn">简体中文（zh_cn）</option>
+            <option value="zh_tw">繁體中文（zh_tw）</option>
+            <option value="ja_jp">日本語（ja_jp）</option>
+            <option value="ko_kr">한국어（ko_kr）</option>
+            <option value="ru_ru">Русский（ru_ru）</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pack-scope">包含范围</label>
+          <select id="pack-scope" class="select">
+            <option value="current">当前文件</option>
+            <option value="all">全部文件（推荐）</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="notice" id="pack-notice-resourcepack">
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-alert"/></svg>
+        <span>Minecraft 版本决定资源包的 <code>pack_format</code>，工具不会自动识别，请按整合包实际版本手动选择。</span>
+      </div>
+      <div class="notice" id="pack-notice-overlay" hidden>
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-info"/></svg>
+        <span>压缩包已按整合包目录结构打包，解压到整合包根目录直接覆盖即可。</span>
+      </div>
+    </div>
+    <footer class="modal-foot">
+      <span class="spacer"></span>
+      <button class="btn" data-close="overlay-pack">取消</button>
+      <button class="btn btn-primary" id="pack-confirm">
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-download"/></svg><span>生成并下载</span>
+      </button>
+    </footer>
+  </div>
+</div>
+
+<!-- ================= 模态框：解析工作目录进度 ================= -->
+<div class="overlay" id="overlay-scan" hidden>
+  <div class="modal modal-scan" role="dialog" aria-modal="true" aria-labelledby="scan-title">
+    <header class="modal-head">
+      <div class="modal-title-wrap">
+        <span class="modal-title-icon scan-icon"><svg class="icon" viewBox="0 0 24 24"><use href="#i-folder-open"/></svg></span>
+        <div>
+          <h2 id="scan-title">正在解析工作目录</h2>
+          <p class="modal-sub mono" id="scan-sub">—</p>
+        </div>
+      </div>
+      <button class="btn btn-icon btn-sm" id="btn-scan-close" title="关闭" hidden>
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-close"/></svg>
+      </button>
+    </header>
+    <div class="modal-body">
+      <div class="scan-phase">
+        <span class="scan-phase-label" id="scan-phase-label">正在准备…</span>
+        <span class="scan-percent" id="scan-percent">0%</span>
+      </div>
+      <div class="progress scan-progress">
+        <div class="progress-fill" id="scan-progress-fill" style="width:0%"></div>
+      </div>
+      <div class="scan-current">
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-list"/></svg>
+        <span class="scan-current-text mono" id="scan-current-item">—</span>
+      </div>
+      <div class="scan-meta">
+        <span id="scan-count"></span>
+        <span id="scan-mods">已发现 0 个模组</span>
+        <span class="spacer"></span>
+        <span id="scan-elapsed">耗时 0.0 秒</span>
+      </div>
+      <div class="notice scan-error" id="scan-error" hidden></div>
+      <div class="scan-warnings" id="scan-warnings" hidden></div>
+    </div>
+    <footer class="modal-foot">
+      <span class="modal-foot-info" id="scan-foot-info">解析期间无法切换目录，可随时取消</span>
+      <span class="spacer"></span>
+      <button class="btn" id="btn-scan-retry" hidden>重试</button>
+      <button class="btn btn-danger-ghost" id="btn-scan-cancel">取消解析</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ================= 模态框：目录不合法 ================= -->
+<div class="overlay" id="overlay-ws-invalid" hidden>
+  <div class="modal modal-confirm" role="dialog" aria-modal="true" aria-labelledby="ws-invalid-title">
+    <header class="modal-head">
+      <div class="modal-title-wrap">
+        <span class="modal-title-icon"><svg class="icon" viewBox="0 0 24 24"><use href="#i-alert"/></svg></span>
+        <div>
+          <h2 id="ws-invalid-title">目录不合法</h2>
+          <p class="modal-sub">请选择整合包根目录或 .minecraft 目录</p>
+        </div>
+      </div>
+      <button class="btn btn-icon btn-sm" data-close="overlay-ws-invalid" title="关闭">
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-close"/></svg>
+      </button>
+    </header>
+    <div class="modal-body">
+      <p class="confirm-text" id="ws-invalid-text"></p>
+      <div class="browse-suggest" id="ws-invalid-suggest" hidden>
+        <span class="browse-suggest-label">可能的正确目录：</span>
+        <span id="ws-invalid-candidates" class="scan-candidates"></span>
+      </div>
+    </div>
+    <footer class="modal-foot">
+      <button class="btn" id="btn-ws-invalid-browse">
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-folder"/></svg><span>浏览目录…</span>
+      </button>
+      <span class="spacer"></span>
+      <button class="btn" data-close="overlay-ws-invalid">取消</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ================= 模态框：LLM 提问 ================= -->
+<div class="overlay" id="overlay-questions" hidden>
+  <div class="modal modal-questions" role="dialog" aria-modal="true" aria-labelledby="questions-title">
+    <header class="modal-head">
+      <div class="modal-title-wrap">
+        <span class="modal-title-icon"><svg class="icon" viewBox="0 0 24 24"><use href="#i-help"/></svg></span>
+        <div>
+          <h2 id="questions-title">翻译引擎需要确认术语</h2>
+          <p class="modal-sub">回答后翻译将继续进行，答案会作为术语表的一部分</p>
+        </div>
+      </div>
+    </header>
+    <div class="modal-body">
+      <div class="questions-list" id="questions-list"></div>
+    </div>
+    <footer class="modal-foot">
+      <span class="modal-foot-info" id="questions-info"></span>
+      <span class="spacer"></span>
+      <button class="btn" id="questions-skip">跳过</button>
+      <button class="btn btn-primary" id="questions-submit">提交答案并继续</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ================= 模态框：通用确认 ================= -->
+<div class="overlay" id="overlay-confirm" hidden>
+  <div class="modal modal-confirm" role="dialog" aria-modal="true">
+    <header class="modal-head">
+      <h2 id="confirm-title">确认</h2>
+      <button class="btn btn-icon btn-sm" data-close="overlay-confirm" title="关闭">
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-close"/></svg>
+      </button>
+    </header>
+    <div class="modal-body">
+      <p class="confirm-text" id="confirm-text"></p>
+    </div>
+    <footer class="modal-foot">
+      <span class="spacer"></span>
+      <button class="btn" data-close="overlay-confirm" id="confirm-cancel">取消</button>
+      <button class="btn btn-primary" id="confirm-ok">确定</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ================= 模态框：选择要导出的语言文件 ================= -->
+<div class="overlay" id="overlay-pick-file" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pick-file-title">
+    <header class="modal-head">
+      <div>
+        <h2 id="pick-file-title">选择要导出的语言文件</h2>
+        <p class="modal-sub" id="pick-file-sub">该分类下有多个语言文件，请选择其中一个导出 zh_cn.json</p>
+      </div>
+      <button class="btn btn-icon btn-sm" data-close="overlay-pick-file" title="关闭">
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-close"/></svg>
+      </button>
+    </header>
+    <div class="modal-body">
+      <div class="file-list" id="pick-file-list"></div>
+    </div>
+    <footer class="modal-foot">
+      <span class="modal-foot-info">想一次导出全部？请使用「生成覆盖包」。</span>
+      <span class="spacer"></span>
+      <button class="btn" data-close="overlay-pick-file">取消</button>
+      <button class="btn btn-primary" id="pick-file-confirm">导出所选</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ================= 提示条 ================= -->
+<div class="toast-stack" id="toast-stack"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>

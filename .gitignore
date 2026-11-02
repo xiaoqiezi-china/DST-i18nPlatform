@@ -1,0 +1,47 @@
+# ---------------- .NET ----------------
+bin/
+obj/
+dist/
+dist-*/
+*.user
+*.suo
+.vs/
+*.DotSettings.user
+
+# ---------------- 发布产物 ----------------
+publish/
+artifacts/
+# release/ 是本机打好的可分发目录，走 GitHub Release 附件，不进仓库
+release/
+
+# ---------------- 测试夹具与测试产物 ----------------
+# 夹具由 tests/make_fixtures.py 生成，不入库（可重复生成）
+tests/fixtures/instance/
+tests/__pycache__/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# 导出服务自测工程的产物
+tests/ExportHarness/bin/
+tests/ExportHarness/obj/
+tests/ExportHarness/out/
+
+# ---------------- 本地运行时文件 ----------------
+# 设置里含 API Key，绝对不能提交
+settings.json
+DstMcI18nTool/
+
+# ---------------- 编辑器 / 系统 ----------------
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---------------- 临时文件 ----------------
+*.log
+*.tmp
+dst_i18n_output/

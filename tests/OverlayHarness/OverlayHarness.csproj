@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>DstMcI18n.OverlayHarness</RootNamespace>
+    <AssemblyName>OverlayHarness</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Link the production sources so the harness exercises the real overlay export code. -->
+    <Compile Include="../../src/Core/*.cs" />
+    <Compile Include="../../src/Services/Exporters.cs" />
+    <Compile Include="../../src/Services/ExportService.cs" />
+    <Compile Include="../../src/Services/DocumentService.cs" />
+    <Compile Include="../../src/Services/WorkspaceSession.cs" />
+  </ItemGroup>
+
+</Project>

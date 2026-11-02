@@ -1,0 +1,85 @@
+name: Build
+
+# 发版只认 tag：仓库里的 tag 是不带 v 的纯版本号（1.1.0、1.1.1 …）。
+# 推 tag 时构建、打包、发布到该 tag 的 Release，启动器就是从这里取最新版的。
+on:
+  push:
+    branches: [main]
+    tags: ['[0-9]*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Restore
+        run: dotnet restore DstMcI18nTool.csproj
+
+      - name: Publish
+        run: >
+          dotnet publish DstMcI18nTool.csproj
+          -c Release
+          -r win-x64
+          -o release
+          -p:SelfContained=true
+          -p:PublishSingleFile=false
+          -p:IncludeNativeLibrariesForSelfExtract=false
+          --nologo
+
+      # 冒烟测试：能启动、能打印版本，说明自包含发布没缺文件
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $exe = 'release\DST-MC-I18n-Tool.exe'
+          if (-not (Test-Path $exe)) { throw "找不到发布产物：$exe" }
+          $out = & $exe --help 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0) { throw "程序 --help 退出码是 $LASTEXITCODE" }
+          if ($out -notmatch 'DST-MC-I18n-Tool') { throw "帮助输出里没有程序名，发布可能不完整" }
+          Write-Host '冒烟测试通过'
+
+      # 打包必须走 tools/pack.py：Compress-Archive 在这个体量上会产出截断包，
+      # 那个包能上传、能下载，只在解压时炸，属于最难查的一类问题。
+      - name: Pack
+        run: python tools/pack.py release DST-MC-I18n-Tool.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: DST-MC-I18n-Tool
+          path: DST-MC-I18n-Tool.zip
+
+      # 打 tag 才发 Release。启动器只认 Release 附件，所以这一步是下载链路的入口。
+      - name: Publish Release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $asset = 'DST-MC-I18n-Tool.zip'
+          if (-not (Test-Path $asset)) { throw "找不到压缩包：$asset" }
+          # 名字里不能带空格，否则 GitHub 会把空格换成点，客户端按固定名匹配就会 404
+          gh release view $tag 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag $asset --title "DST MC I18n Tool v$tag" --generate-notes
+          } else {
+            gh release upload $tag $asset --clobber
+          }

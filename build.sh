@@ -8,6 +8,7 @@
 #   ./build.sh
 #   ./build.sh --configuration Debug --output dist-debug
 #   ./build.sh --clean
+#   ./build.sh --pack                  # 额外打成可分发的 zip（发版用）
 #
 # 注意：目标运行时固定为 win-x64，因此即使脚本跑在 Linux 上，产物也是 Windows exe。
 
@@ -16,6 +17,7 @@ set -euo pipefail
 CONFIGURATION="Release"
 OUTPUT="dist"
 CLEAN=0
+PACK=0
 
 usage() {
     sed -n '3,13p' "$0" | sed 's/^# \{0,1\}//'
@@ -35,13 +37,17 @@ while [[ $# -gt 0 ]]; do
             CLEAN=1
             shift
             ;;
+        --pack)
+            PACK=1
+            shift
+            ;;
         -h|--help)
             usage
             exit 0
             ;;
         *)
             echo "未知参数: $1" >&2
-            echo "用法: ./build.sh [--configuration Release] [--output dist] [--clean]" >&2
+            echo "用法: ./build.sh [--configuration Release] [--output dist] [--clean] [--pack]" >&2
             exit 2
             ;;
     esac
@@ -104,3 +110,16 @@ echo "运行方式："
 echo "  \"$EXE\" --path \"<整合包目录>\""
 echo "  \"$EXE\" --help"
 echo
+
+# 打包成 zip。这一步必须走 tools/pack.py 而不是 Compress-Archive：
+# PowerShell 那个实现在这个体量上会产出截断包，2026-11 就是这么坏过一次。
+if [[ "$PACK" -eq 1 ]]; then
+    if ! command -v python >/dev/null 2>&1; then
+        echo "没有找到 python，无法打包。请安装 Python 3 或手动打包。" >&2
+        exit 1
+    fi
+    ZIP="$ROOT/DST-MC-I18n-Tool.zip"
+    python "$ROOT/tools/pack.py" "$OUT_DIR" "$ZIP"
+    echo "  压缩包     : $ZIP"
+    echo
+fi

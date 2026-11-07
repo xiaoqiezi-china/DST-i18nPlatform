@@ -1,5 +1,3 @@
-
-
 set -euo pipefail
 
 CONFIGURATION="Release"

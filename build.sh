@@ -20,7 +20,18 @@ CLEAN=0
 PACK=0
 
 usage() {
-    sed -n '3,13p' "$0" | sed 's/^# \{0,1\}//'
+    cat <<'USAGE'
+DST MC I18n Tool 一键发布脚本（git-bash / WSL / Linux）
+
+用法：
+  ./build.sh                         发布 Release 到 dist/
+  ./build.sh -c Debug -o dist-debug  指定配置与输出目录
+  ./build.sh --clean                 发布前清空输出目录
+  ./build.sh --pack                  额外打成可分发的 zip（发版用）
+
+产物为 win-x64 自包含程序（exe + 依赖 dll，非单文件、非自解压）。
+整个输出目录一起分发，不要只拷 exe。
+USAGE
 }
 
 while [[ $# -gt 0 ]]; do

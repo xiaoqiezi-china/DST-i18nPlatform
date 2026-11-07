@@ -1,17 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""把发布目录打成可分发的 zip，并在写出后立刻自检。
-
-为什么不用 Compress-Archive：PowerShell 那个实现在文件数多、体积大时会产出
-没有中央目录结尾记录（EOCD）的截断包——2026-11 发 1.1.0 时就是这么坏掉的，
-附件上传成功、下载也返回 200，解压时才炸。这里用标准库 zipfile，写完必须
-通过四项检查才算成功，任何一项不过就以非零码退出。
-
-用法：
-    python tools/pack.py <源目录> <输出 zip>
-
-退出码：0 成功；1 打包或自检失败。
-"""
+"""Write a distributable zip from a publish directory and verify it immediately."""
 
 from __future__ import annotations
 
@@ -20,6 +9,12 @@ import os
 import sys
 import zipfile
 from typing import NoReturn
+
+USAGE = """用法: python tools/pack.py <源目录> <输出 zip>
+
+把发布目录打成可分发的 zip，并在写出后立刻自检（EOCD、条目数、CRC、可解压）。
+退出码: 0 成功；1 打包或自检失败；2 参数错误。
+"""
 
 # 打包时的压缩级别：1 是「快」而不是「小」。这个包 100MB 出头、三百多个文件，
 # 主要是 dll，压缩率本来就不高，用 1 能把打包时间压到几秒。
@@ -53,7 +48,7 @@ def collect(source: str) -> list[tuple[str, str]]:
 
 def main() -> int:
     if len(sys.argv) != 3:
-        print(__doc__, file=sys.stderr)
+        print(USAGE, file=sys.stderr)
         return 2
 
     source = os.path.abspath(sys.argv[1])

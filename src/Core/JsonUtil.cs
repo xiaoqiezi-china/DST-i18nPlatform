@@ -49,7 +49,6 @@ public static class JsonUtil
     public static string Serialize(JsonNode? node, bool indented = true)
         => node is null ? "{}" : node.ToJsonString(indented ? OutOptions : CompactOptions);
 
-    /// <summary>Flattens all string leaves into entries with segment paths.</summary>
     public static List<LangEntry> Flatten(JsonNode? root)
     {
         var list = new List<LangEntry>();
@@ -88,7 +87,6 @@ public static class JsonUtil
         }
     }
 
-    /// <summary>Writes translated values back into a parsed tree.</summary>
     public static void Apply(JsonNode? root, IEnumerable<LangEntry> entries)
     {
         foreach (var entry in entries)

@@ -2,10 +2,6 @@ using System.Text;
 
 namespace DstMcI18n.Core;
 
-/// <summary>
-/// The built-in translation system prompt. Users can override it from the settings page;
-/// the placeholders {{targetLanguage}}, {{glossary}} and {{askUser}} are substituted at run time.
-/// </summary>
 public static class PromptDefaults
 {
     public const string TargetLanguageToken = "{{targetLanguage}}";
@@ -27,7 +23,6 @@ public static class PromptDefaults
         GlossaryToken + "\n" +
         AskUserToken;
 
-    /// <summary>Renders the prompt, falling back to the default when the user prompt is empty.</summary>
     public static string Render(string? userPrompt, string targetLanguage, IReadOnlyDictionary<string, string>? glossary, bool askUser)
     {
         var template = string.IsNullOrWhiteSpace(userPrompt) ? DefaultSystemPrompt : userPrompt!;

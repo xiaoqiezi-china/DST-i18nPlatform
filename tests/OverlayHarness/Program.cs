@@ -7,15 +7,6 @@ using DstMcI18n.Services;
 
 namespace DstMcI18n.OverlayHarness;
 
-/// <summary>
-/// Self test for the v1.1 overlay export (ExportService.BuildKubejsOverlay / BuildFtbOverlay):
-///   - an empty "files" list exports every kubejs / ftbquests language file of the workspace;
-///   - every exported file is a complete table (source text + on-disk zh_cn + UI translations);
-///   - zip paths are kubejs/... and config/ftbquests/... with the language name swapped;
-///   - no packName / packVersion is required;
-///   - an explicit file list still works (backwards compatible).
-/// It builds a throw-away workspace under the system temp dir, so it never touches tests/fixtures.
-/// </summary>
 internal static class Program
 {
     private static readonly List<string> Failures = new();
@@ -60,9 +51,6 @@ internal static class Program
         return 1;
     }
 
-    // ------------------------------------------------------------- workspace
-
-    /// <summary>Writes a minimal fake instance: two kubejs namespaces plus two ftbquests files.</summary>
     private static string BuildWorkspace()
     {
         var root = Path.Combine(_tmp, "instance");
@@ -87,7 +75,7 @@ internal static class Program
             "{\n\t\"quest.1.title\": \"Hello\",\n\t\"quest.2.title\": \"Gather Wood\",\n\t\"chapter.2.subtitle\": \"Automate everything\"\n}\n");
         WriteFile(root, "config/ftbquests/quests/lang/ja_jp.snbt",
             "{\n\t\"quest.1.title\": \"こんにちは\",\n\t\"quest.2.title\": \"木を集める\",\n\t\"chapter.2.subtitle\": \"すべてを自動化\"\n}\n");
-        // Quest data must never end up inside an overlay pack.
+
         WriteFile(root, "config/ftbquests/quests/chapters/chapter1.snbt", "{ id: \"chapter1\", title: \"Getting Started\" }\n");
         WriteFile(root, "version.json", JsonText(new JsonObject { ["id"] = "1.20.1-forge-47.2.0" }));
         return root;
@@ -102,8 +90,6 @@ internal static class Program
 
     private static string JsonText(JsonObject node)
         => node.ToJsonString(JsonUtil.OutOptions) + "\n";
-
-    // ----------------------------------------------------------------- tests
 
     private static void TestKubejsAllFiles(ExportService service)
     {
@@ -168,7 +154,6 @@ internal static class Program
             var names = ZipNames(bytes);
             var langFiles = names.Where(n => n != "README.txt").ToList();
 
-            // en_us + ja_jp both map onto quests/lang/zh_cn.snbt, so exactly one entry survives.
             AssertEqual(1, langFiles.Count, "language file count: " + string.Join(", ", names));
             AssertEqual("config/ftbquests/quests/lang/zh_cn.snbt", langFiles[0], "zip path");
             Assert(!names.Any(n => n.Contains("chapters")), "quest data file leaked into the pack: " + string.Join(", ", names));
@@ -206,7 +191,7 @@ internal static class Program
         {
             var (bytes, _) = service.BuildFtbOverlay(new ExportOverlayRequest());
             var text = Encoding.UTF8.GetString(ZipRead(bytes, "config/ftbquests/quests/lang/zh_cn.snbt"));
-            // en_us must be the base document; ja_jp must not overwrite it.
+
             Assert(text.Contains("Hello"), "en_us base text missing: " + text);
             Assert(!text.Contains("こんにちは"), "ja_jp file overwrote the source table: " + text);
         });
@@ -305,8 +290,6 @@ internal static class Program
             AssertThrows<InvalidOperationException>(() => service.BuildKubejsOverlay(new ExportOverlayRequest()), "no workspace");
         });
     }
-
-    // --------------------------------------------------------------- helpers
 
     private static List<string> ZipNames(byte[] zip)
     {

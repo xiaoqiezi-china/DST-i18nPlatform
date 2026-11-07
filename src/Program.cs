@@ -20,7 +20,7 @@ public static class Program
         }
         catch
         {
-            // redirected output may not support changing the encoding
+
         }
 
         try
@@ -29,7 +29,7 @@ public static class Program
         }
         catch
         {
-            // keep the default writer
+
         }
         var options = AppOptions.Parse(args);
         if (options.ShowHelp)
@@ -65,8 +65,7 @@ public static class Program
         builder.Logging.ClearProviders();
         builder.WebHost.UseKestrel(kestrel =>
         {
-            // ListenLocalhost() rejects port 0, so bind the loopback address explicitly to
-            // support "random free port" mode.
+
             kestrel.Listen(System.Net.IPAddress.Loopback, options.Port ?? 0);
             kestrel.AddServerHeader = false;
         });
@@ -90,8 +89,6 @@ public static class Program
 
         await app.StartAsync().ConfigureAwait(false);
 
-        // 目录扫描放到服务启动之后异步执行：大整合包扫描可能要几十秒，
-        // 不能让 HTTP 端口一直不监听（否则浏览器打不开，看起来像程序卡死）。
         var startupPath = options.WorkspacePath;
         if (string.IsNullOrWhiteSpace(startupPath) &&
             !string.IsNullOrWhiteSpace(settings.Current.LastWorkspace) &&

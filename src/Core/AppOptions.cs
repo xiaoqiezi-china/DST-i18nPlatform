@@ -1,6 +1,5 @@
 namespace DstMcI18n.Core;
 
-/// <summary>Command line options.</summary>
 public sealed class AppOptions
 {
     public string? WorkspacePath { get; set; }

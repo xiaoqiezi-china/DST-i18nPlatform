@@ -3,10 +3,6 @@ using System.Text.RegularExpressions;
 
 namespace DstMcI18n.Services;
 
-/// <summary>
-/// Protects Minecraft formatting tokens (placeholders, color codes, newlines)
-/// so a translator cannot destroy them.
-/// </summary>
 public static class Placeholders
 {
     private static readonly Regex TokenRegex = new(
@@ -46,14 +42,13 @@ public static class Placeholders
             }
             else
             {
-                // translator dropped the marker: append so information is not silently lost
+
                 sb.Append(' ').Append(tokens[i]);
             }
         }
         return sb.ToString();
     }
 
-    /// <summary>True when the value has nothing translatable (only tokens / punctuation).</summary>
     public static bool IsTrivial(string value)
     {
         if (string.IsNullOrWhiteSpace(value)) return true;

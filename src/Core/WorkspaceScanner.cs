@@ -3,7 +3,6 @@ using System.Text.RegularExpressions;
 
 namespace DstMcI18n.Core;
 
-/// <summary>Callback used by <see cref="WorkspaceScanner"/> to report scan progress.</summary>
 public sealed class ScanReporter
 {
     private readonly Action<ScanProgress>? _onUpdate;
@@ -43,13 +42,12 @@ public sealed class ScanReporter
     public void Push()
     {
         if (_onUpdate is null) return;
-        try { _onUpdate(Progress); } catch { /* progress reporting must never break a scan */ }
+        try { _onUpdate(Progress); } catch {   }
     }
 
     public void ThrowIfCancelled() => CancellationToken.ThrowIfCancellationRequested();
 }
 
-/// <summary>Discovers mods / kubejs / config language files inside a Minecraft instance.</summary>
 public sealed class WorkspaceScanner
 {
     private static readonly Regex LangPathRegex = new(
@@ -58,7 +56,6 @@ public sealed class WorkspaceScanner
 
     private static readonly string[] SkipJarSuffixes = { ".jar.disabled", ".jar.bak", ".zip" };
 
-    /// <summary>Quick structural check: does this folder look like a Minecraft instance?</summary>
     public static (bool valid, List<string> candidates) Validate(string path)
     {
         var candidates = new List<string>();
@@ -177,7 +174,7 @@ public sealed class WorkspaceScanner
         }
         catch
         {
-            // version detection is best effort
+
         }
     }
 
@@ -194,11 +191,6 @@ public sealed class WorkspaceScanner
         return null;
     }
 
-    /// <summary>
-    /// Looks for plausible instance folders below <paramref name="root"/>.
-    /// Bounded to a few levels and a hard time budget: launcher roots can contain
-    /// tens of thousands of files, and a validation step must stay instant.
-    /// </summary>
     private static List<string> FindCandidates(string root)
     {
         var result = new List<string>();
@@ -276,7 +268,6 @@ public sealed class WorkspaceScanner
         reporter?.Phase("mods", "正在解析模组…", total);
         var index = 0;
 
-        // Mods unpacked into a folder (common with some launchers / dev setups).
         foreach (var folder in folders)
         {
             reporter?.ThrowIfCancelled();
@@ -423,7 +414,6 @@ public sealed class WorkspaceScanner
             var directAssets = System.IO.Path.Combine(info.KubejsDir, "assets");
             if (Directory.Exists(directAssets)) assetDirs.Add(directAssets);
 
-            // kubejs/assets/<namespace>/lang/*.json and also any nested assets folders.
             foreach (var dir in Directory.EnumerateDirectories(info.KubejsDir, "assets", SearchOption.AllDirectories))
             {
                 if (!assetDirs.Contains(dir)) assetDirs.Add(dir);
@@ -508,8 +498,7 @@ public sealed class WorkspaceScanner
         {
             try
             {
-                // FTB Quests keeps its localized text in <quests>/lang/<locale>.snbt.
-                // Only fall back to every .snbt file when no lang folder exists.
+
                 var all = Directory.EnumerateFiles(root, "*.snbt", SearchOption.AllDirectories).ToList();
                 var langFiles = all.Where(f =>
                 {
@@ -557,7 +546,7 @@ public sealed class WorkspaceScanner
 
     private static string GuessFtbLang(string relativePath)
     {
-        // FTB Quests stores localized files under lang/<locale>/ or lang/<locale>.snbt
+
         var parts = relativePath.Split('/');
         for (var i = 0; i < parts.Length - 1; i++)
         {

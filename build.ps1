@@ -1,25 +1,5 @@
-<#
-.SYNOPSIS
-    DST MC I18n Tool 一键发布脚本（Windows / PowerShell）。
 
-.DESCRIPTION
-    调用 dotnet publish 生成 win-x64 自包含程序（普通多文件发布，不做单文件/自解压），产物输出到 dist/。
-    前端资源（wwwroot）在构建时作为 EmbeddedResource 打进程序集，因此 dist 里不需要带 wwwroot。
 
-.PARAMETER Configuration
-    构建配置，默认 Release。
-
-.PARAMETER Output
-    输出目录，默认仓库根目录下的 dist。
-
-.PARAMETER Clean
-    发布前先清空输出目录。
-
-.EXAMPLE
-    .\build.ps1
-    .\build.ps1 -Configuration Debug -Output dist-debug
-    .\build.ps1 -Clean
-#>
 [CmdletBinding()]
 param(
     [string]$Configuration = 'Release',

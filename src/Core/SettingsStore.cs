@@ -3,7 +3,6 @@ using System.Text.Json.Nodes;
 
 namespace DstMcI18n.Core;
 
-/// <summary>Loads/saves application settings in %APPDATA%\DstMcI18nTool\settings.json.</summary>
 public sealed class SettingsStore
 {
     private readonly object _gate = new();
@@ -56,12 +55,11 @@ public sealed class SettingsStore
         }
         catch
         {
-            // corrupted settings fall back to defaults
+
         }
         return new AppSettings();
     }
 
-    /// <summary>Older builds defaulted to model ids that no longer exist on the DeepSeek API.</summary>
     private static void MigrateLegacyModel(AppSettings settings)
     {
         var model = (settings.LlmModel ?? "").Trim();
@@ -127,11 +125,10 @@ public sealed class SettingsStore
         }
         catch
         {
-            // settings persistence is best effort
+
         }
     }
 
-    /// <summary>Settings shape sent to the browser (never exposes the API key).</summary>
     public object ToDto()
     {
         var s = Current;

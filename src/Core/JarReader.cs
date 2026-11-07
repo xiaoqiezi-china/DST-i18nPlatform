@@ -3,7 +3,6 @@ using System.Text;
 
 namespace DstMcI18n.Core;
 
-/// <summary>Reads entries out of a .jar/.zip without extracting it.</summary>
 public static class JarReader
 {
     public static readonly Encoding Utf8 = new UTF8Encoding(false);
@@ -47,7 +46,6 @@ public static class JarReader
         return ms.ToArray();
     }
 
-    /// <summary>Locates the mod id from fabric.mod.json / META-INF/mods.toml / quilt.mod.json.</summary>
     public static (string modId, string name, string version, string loader) ReadModMeta(string path)
     {
         string modId = "", name = "", version = "", loader = "";
@@ -106,14 +104,13 @@ public static class JarReader
         }
         catch
         {
-            // unreadable jar: fall back to file name
+
         }
 
         return (modId, name, version, loader);
     }
 }
 
-/// <summary>Tiny TOML helper that only extracts mod metadata fields.</summary>
 public static class TomlLite
 {
     public static (string modId, string displayName, string version) ParseModsToml(string text)

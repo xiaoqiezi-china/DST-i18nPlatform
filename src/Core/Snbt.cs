@@ -4,10 +4,6 @@ using System.Text.Json.Nodes;
 
 namespace DstMcI18n.Core;
 
-/// <summary>
-/// Minimal SNBT (Minecraft NBT text form) reader/writer.
-/// Non-string values keep their raw text so a round-trip is lossless.
-/// </summary>
 public static class Snbt
 {
     public static bool TryParse(string text, out JsonNode? root, out Dictionary<string, string> raw, out string? error)
@@ -208,7 +204,7 @@ public static class Snbt
         private JsonArray ParseList(Dictionary<string, string> raw, string path)
         {
             Expect('[');
-            // typed array prefix: B; I; L;
+
             var save = _pos;
             SkipWs();
             if (_pos + 1 < _text.Length && _text[_pos] is 'B' or 'I' or 'L' && _text[_pos + 1] == ';')
@@ -280,7 +276,7 @@ public static class Snbt
                 raw[path] = token;
                 return JsonValue.Create(l);
             }
-            // Unquoted string (legacy SNBT allows it).
+
             return JsonValue.Create(token);
         }
 

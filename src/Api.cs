@@ -5,7 +5,6 @@ using DstMcI18n.Services;
 
 namespace DstMcI18n;
 
-/// <summary>All HTTP endpoints. Every handler returns a typed object or an IResult.</summary>
 public static class Api
 {
     private static readonly JsonSerializerOptions JsonOut = new()
@@ -23,8 +22,6 @@ public static class Api
         MapTranslation(app);
         MapExport(app);
     }
-
-    // ---------------- static ----------------
 
     private static void MapStatic(WebApplication app)
     {
@@ -48,8 +45,6 @@ public static class Api
             return Results.Content(assets.Html, "text/html; charset=utf-8");
         });
     }
-
-    // ---------------- settings ----------------
 
     private static void MapSettings(WebApplication app)
     {
@@ -94,14 +89,12 @@ public static class Api
             }
             catch
             {
-                // provider is optional
+
             }
             var (ok, resolved, message) = await mt.TestAsync(store.Current, provider, CancellationToken.None);
             return Results.Json(new { ok, provider = resolved, message }, JsonOut);
         });
     }
-
-    // ---------------- workspace ----------------
 
     private static void MapWorkspace(WebApplication app)
     {
@@ -126,8 +119,6 @@ public static class Api
             wire["scanId"] = scanning;
             return Results.Json(wire, JsonOut);
         });
-
-        // ---- asynchronous scan ----
 
         app.MapPost("/api/workspace/scan", async (HttpRequest request, WorkspaceSession session, SettingsStore store) =>
         {
@@ -214,8 +205,7 @@ public static class Api
 
         app.MapPost("/api/workspace/pick", async (WorkspaceSession session) =>
         {
-            // The native dialog runs on its own thread; if it cannot appear (headless /
-            // service session) we give up quickly and the UI falls back to its built-in browser.
+
             var work = Task.Run(() => FolderPicker.Pick(session.CurrentPath));
             var finished = await Task.WhenAny(work, Task.Delay(TimeSpan.FromSeconds(60))).ConfigureAwait(false);
             if (finished != work)
@@ -266,7 +256,7 @@ public static class Api
             }
             catch
             {
-                // skip unreadable drives
+
             }
         }
 
@@ -365,14 +355,12 @@ public static class Api
             }
             catch
             {
-                // ignore unreadable roots
+
             }
             if (result.Count >= 8) break;
         }
         return result;
     }
-
-    // ---------------- documents ----------------
 
     private static void MapDocuments(WebApplication app)
     {
@@ -410,8 +398,6 @@ public static class Api
             }
         });
     }
-
-    // ---------------- translation ----------------
 
     private static void MapTranslation(WebApplication app)
     {
@@ -482,8 +468,6 @@ public static class Api
             return Results.Json(new { ok }, JsonOut);
         });
     }
-
-    // ---------------- export ----------------
 
     private static void MapExport(WebApplication app)
     {
@@ -562,8 +546,6 @@ public static class Api
         });
     }
 
-    // ---------------- helpers ----------------
-
     private static readonly long StartupTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
     private static IResult Download(byte[] bytes, string fileName)
@@ -601,10 +583,8 @@ public static class Api
         }
     }
 
-    /// <summary>Projects the workspace onto the shape documented in docs/API.md.</summary>
     private static object ToWire(WorkspaceInfo info) => ToWireDictionary(info);
 
-    /// <summary>Same projection but as a mutable dictionary (so extra flags can be added).</summary>
     private static Dictionary<string, object?> ToWireDictionary(WorkspaceInfo info) => new(StringComparer.Ordinal)
     {
         ["path"] = info.Path,
@@ -680,7 +660,6 @@ public static class Api
     };
 }
 
-/// <summary>Request body for POST /api/translate.</summary>
 public sealed class TranslateBody
 {
     public string Kind { get; set; } = "mod";

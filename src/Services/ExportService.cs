@@ -3,7 +3,6 @@ using DstMcI18n.Core;
 
 namespace DstMcI18n.Services;
 
-/// <summary>Everything the export endpoints need: entry application, pack building, disk writes.</summary>
 public sealed class ExportService
 {
     private readonly WorkspaceSession _session;
@@ -15,7 +14,6 @@ public sealed class ExportService
         _documents = documents;
     }
 
-    /// <summary>Serializes a document with the given translations applied, honouring its format.</summary>
     public byte[] BuildFileContent(LoadedDocument doc, IEnumerable<LangEntry> entries)
     {
         var list = entries.ToList();
@@ -31,7 +29,6 @@ public sealed class ExportService
         return new System.Text.UTF8Encoding(false).GetBytes(jsonText);
     }
 
-    /// <summary>Applies translations onto a clone of the source tree.</summary>
     public static JsonNode? ApplyEntries(LoadedDocument doc, IReadOnlyList<LangEntry> entries)
     {
         var tree = doc.Tree?.DeepClone();
@@ -55,12 +52,6 @@ public sealed class ExportService
         return tree;
     }
 
-    /// <summary>
-    /// Builds one complete language table out of three layers, so an exported pack never ships
-    /// a partial language file. Priority (high to low): entries sent by the UI, translations
-    /// already on disk (zh_cn), source text. Keys only present in a lower layer are appended,
-    /// so nothing is silently dropped.
-    /// </summary>
     public static List<LangEntry> MergeEntries(LoadedDocument doc, IReadOnlyList<LangEntry>? translated)
     {
         var existing = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -111,8 +102,6 @@ public sealed class ExportService
         return obj;
     }
 
-    // ---------------- resource pack (mod) ----------------
-
     public (byte[] bytes, string fileName) BuildResourcePack(ExportPackRequest request)
     {
         var doc = _documents.Load(new DocumentQuery
@@ -145,8 +134,6 @@ public sealed class ExportService
         return (bytes, name);
     }
 
-    // ---------------- overlay packs ----------------
-
     public (byte[] bytes, string fileName) BuildKubejsOverlay(ExportOverlayRequest request)
     {
         var info = _session.Require();
@@ -154,7 +141,6 @@ public sealed class ExportService
         var targetLang = NormalizeLang(request.TargetLanguage);
         var workspaceName = WorkspaceName(info);
 
-        // No explicit file list -> the pack covers every kubejs language file of the workspace.
         var plan = BuildOverlayPlan(request, info.Kubejs.Files.Select(f => (f.RelativePath, (IReadOnlyList<LangEntry>?)null)));
         var files = BuildOverlayFiles("kubejs", "kubejs", targetLang, plan);
         if (files.Count == 0) throw new ArgumentException("没有可导出的 kubejs 语言文件");
@@ -172,7 +158,6 @@ public sealed class ExportService
         var targetLang = NormalizeLang(request.TargetLanguage);
         var workspaceName = WorkspaceName(info);
 
-        // No explicit file list -> the pack covers every ftbquests language file of the workspace.
         var plan = BuildOverlayPlan(request, info.Ftb.Files.Select(f => (f.RelativePath, (IReadOnlyList<LangEntry>?)null)));
         var files = BuildOverlayFiles("ftb", "config/ftbquests", targetLang, plan);
         if (files.Count == 0) throw new ArgumentException("没有可导出的 ftbquests 语言文件");
@@ -183,11 +168,6 @@ public sealed class ExportService
         return (bytes, Exporters.SafeFileName(workspaceName + "-ftbquests-" + targetLang + ".zip", "ftbquests-overlay.zip"));
     }
 
-    /// <summary>
-    /// Chooses which files an overlay covers: the caller list when present, otherwise every
-    /// language file the last scan found. Source-language files are ordered first so that,
-    /// when several files map onto the same target language path, the source one wins.
-    /// </summary>
     private static List<(string Path, IReadOnlyList<LangEntry>? Entries)> BuildOverlayPlan(
         ExportOverlayRequest request,
         IEnumerable<(string Path, IReadOnlyList<LangEntry>? Entries)> scanned)
@@ -208,20 +188,16 @@ public sealed class ExportService
         foreach (var file in scanned)
         {
             if (string.IsNullOrWhiteSpace(file.Path)) continue;
-            // Only files whose language name can be swapped are real language files; quest
-            // data files (.snbt chapters etc.) must never be copied into an overlay pack.
+
             if (DocumentService.SwapLang(file.Path.Replace('\\', '/'), targetLang) is null) continue;
             plan.Add((file.Path, file.Entries));
         }
 
-        // Files already in the target language go last, so the source-language document
-        // (which carries the full table) wins when several map onto the same zip path.
         return plan
             .OrderBy(item => IsLanguagePath(item.Path, targetLang) ? 1 : 0)
             .ToList();
     }
 
-    /// <summary>Loads every planned document and renders it as one complete overlay file.</summary>
     private List<OverlayFile> BuildOverlayFiles(
         string kind,
         string zipPrefix,
@@ -236,7 +212,6 @@ public sealed class ExportService
             var relative = rawPath.Replace('\\', '/').TrimStart('/');
             if (relative.Length == 0) continue;
 
-            // Language name swapped to the target, extension kept (zh_cn.json / zh_cn.snbt).
             var targetPath = DocumentService.SwapLang(relative, targetLang) ?? relative;
             var zipPath = zipPrefix + "/" + targetPath.TrimStart('/');
             if (!seen.Add(zipPath)) continue;
@@ -245,7 +220,7 @@ public sealed class ExportService
             files.Add(new OverlayFile
             {
                 ZipPath = zipPath,
-                // Merge source + on-disk zh_cn + UI translations: never ship a partial table.
+
                 Content = System.Text.Encoding.UTF8.GetString(BuildFileContent(doc, MergeEntries(doc, entries)))
             });
         }
@@ -275,8 +250,6 @@ public sealed class ExportService
         var name = Path.GetFileName(trimmed);
         return string.IsNullOrWhiteSpace(name) ? "整合包" : name;
     }
-
-    // ---------------- single lang file / write back ----------------
 
     public (byte[] bytes, string fileName) BuildLangFile(ExportLangRequest request)
     {
@@ -315,7 +288,7 @@ public sealed class ExportService
 
         if (request.Kind.Equals("mod", StringComparison.OrdinalIgnoreCase))
         {
-            // mods live inside jars: write a resource pack style folder instead of touching the jar
+
             var outDir = string.IsNullOrWhiteSpace(request.OutputDirectory)
                 ? Path.Combine(info.Path, "dst_i18n_output", "assets",
                     SanitizeNamespace(doc.Dto.NamespaceName ?? "minecraft"), "lang")
@@ -342,9 +315,6 @@ public sealed class ExportService
         return written;
     }
 
-    /// <summary>
-    /// Overlay packs no longer carry a version number: PackName is only used in the README text.
-    /// </summary>
     private static PackOptions BuildOverlayOptions(string name, string targetLang, string description)
         => new()
         {

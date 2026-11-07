@@ -1,26 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""生成 DST MC I18n Tool 的测试夹具（一个假的 Minecraft 整合包目录）。
-
-只依赖 Python 标准库（json / zipfile / hashlib / shutil），不需要第三方包。
-可重复执行：每次都会先清空目标目录再重建；jar 内的时间戳与权限位固定，
-因此同一版本脚本生成的文件是字节级一致的。
-
-用法：
-    python tests/make_fixtures.py
-    python tests/make_fixtures.py --out "D:/tmp/instance"
-
-生成的目录结构（默认 tests/fixtures/instance）：
-    version.json
-    mods/CreateFake-1.0.0.jar      Fabric 风格，assets/createfake/lang/en_us.json（29 条）
-    mods/ForgeFake.jar             Forge 风格，mods.toml + en_us/zh_cn
-    mods/BrokenMod.jar             损坏的 jar（非合法 zip），用于健壮性测试
-    kubejs/assets/kubejs/lang/en_us.json
-    kubejs/assets/custom_ns/lang/en_us.json + zh_cn.json
-    config/ftbquests/quests/lang/en_us.snbt
-    config/ftbquests/quests/chapters/chapter1.snbt
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -35,10 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURES_ROOT = ROOT / "tests" / "fixtures"
 DEFAULT_OUT = FIXTURES_ROOT / "instance"
 
-
 def _setup_stdout() -> None:
-    """输出被重定向（管道 / CI 日志）时强制 UTF-8，避免 Windows 代码页乱码；
-    直接挂在控制台（tty）时保持系统默认编码。"""
+    pass
+
     for stream in (sys.stdout, sys.stderr):
         try:
             if not stream.isatty():
@@ -46,18 +22,11 @@ def _setup_stdout() -> None:
         except Exception:
             pass
 
-
 _setup_stdout()
-
 
 MARKER = ".i18ntool-fixtures"
 ZIP_DATE_TIME = (2024, 1, 1, 0, 0, 0)
 ZIP_FILE_MODE = 0o100644 << 16
-
-
-# ---------------------------------------------------------------------------
-# 语言文件内容
-# ---------------------------------------------------------------------------
 
 CREATE_FAKE_EN_US = {
     "item.createfake.cogwheel": "Cogwheel",
@@ -224,29 +193,21 @@ FTB_CHAPTER_SNBT = '''{
 
 VERSION_JSON = {"id": "1.20.1-forge-47.2.0"}
 
-
-# ---------------------------------------------------------------------------
-# 工具函数
-# ---------------------------------------------------------------------------
-
 def json_text(obj) -> str:
-    """序列化为 UTF-8 友好的缩进 JSON（中文不转义），结尾带换行。"""
+    pass
     return json.dumps(obj, ensure_ascii=False, indent=2) + "\n"
-
 
 def write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(text)
 
-
 def write_bytes(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
 
-
 def write_jar(path: Path, entries) -> None:
-    """写一个确定性的 zip/jar：固定时间戳、固定权限位。"""
+    pass
     path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
         for name, data in entries:
@@ -257,9 +218,8 @@ def write_jar(path: Path, entries) -> None:
             info.external_attr = ZIP_FILE_MODE
             zf.writestr(info, data)
 
-
 def flatten_strings(node, prefix: str = ""):
-    """把 JSON 结构里的字符串叶子展开成 (key, value)，与 C# JsonUtil.Flatten 对齐。"""
+    pass
     out = []
     if isinstance(node, dict):
         for key, value in node.items():
@@ -272,9 +232,8 @@ def flatten_strings(node, prefix: str = ""):
         out.append((prefix, node))
     return out
 
-
 def reset_dir(target: Path) -> None:
-    """清空并重建目标目录；只允许清空测试夹具目录，避免误删。"""
+    pass
     target = target.resolve()
     under_fixtures = FIXTURES_ROOT.resolve() in target.parents
     has_marker = (target / MARKER).is_file()
@@ -290,24 +249,17 @@ def reset_dir(target: Path) -> None:
     target.mkdir(parents=True, exist_ok=True)
     write_text(target / MARKER, "由 tests/make_fixtures.py 生成，可安全删除。\n")
 
-
-# ---------------------------------------------------------------------------
-# 生成
-# ---------------------------------------------------------------------------
-
 def build(out_dir: Path) -> None:
     reset_dir(out_dir)
 
     mods = out_dir / "mods"
 
-    # 1) Fabric 风格 mod：fabric.mod.json + assets/<ns>/lang/en_us.json
     write_jar(mods / "CreateFake-1.0.0.jar", [
         ("fabric.mod.json", json_text(CREATE_FAKE_FABRIC_MOD_JSON)),
         ("assets/createfake/lang/en_us.json", json_text(CREATE_FAKE_EN_US)),
         ("assets/createfake/textures/item/cogwheel.png", b"\x89PNG\r\n\x1a\n fake png for fixture only"),
     ])
 
-    # 2) Forge 风格 mod：META-INF/mods.toml + en_us/zh_cn
     write_jar(mods / "ForgeFake.jar", [
         ("META-INF/MANIFEST.MF", "Manifest-Version: 1.0\nImplementation-Title: ForgeFake\n\n"),
         ("META-INF/mods.toml", FORGE_FAKE_MODS_TOML),
@@ -315,35 +267,29 @@ def build(out_dir: Path) -> None:
         ("assets/forgefake/lang/zh_cn.json", json_text(FORGE_FAKE_ZH_CN)),
     ])
 
-    # 3) 损坏的 jar：不是合法 zip，扫描时应被跳过并记录 warning
     write_bytes(
         mods / "BrokenMod.jar",
         b"This file pretends to be a jar but is definitely not a zip archive.\n" * 4,
     )
 
-    # 非 jar 文件应被忽略
     write_text(mods / "optional-notes.txt", "这个文件不是 mod，扫描时应当被忽略。\n")
 
-    # 4) KubeJS
     kubejs = out_dir / "kubejs" / "assets"
     write_text(kubejs / "kubejs" / "lang" / "en_us.json", json_text(KUBEJS_EN_US))
     write_text(kubejs / "custom_ns" / "lang" / "en_us.json", json_text(CUSTOM_NS_EN_US))
     write_text(kubejs / "custom_ns" / "lang" / "zh_cn.json", json_text(CUSTOM_NS_ZH_CN))
 
-    # 5) FTB Quests（config/ftbquests）
     quests = out_dir / "config" / "ftbquests" / "quests"
     write_text(quests / "lang" / "en_us.snbt", FTB_LANG_SNBT)
     write_text(quests / "chapters" / "chapter1.snbt", FTB_CHAPTER_SNBT)
     write_text(quests / "data.snbt", '{ version: 12, default_quest_shape: "" }\n')
 
-    # 6) 版本信息
     write_text(out_dir / "version.json", json_text(VERSION_JSON))
 
     self_check(out_dir)
 
-
 def self_check(out_dir: Path) -> None:
-    """基本自检：jar 可读、条目数达到预期。"""
+    pass
     expected = [
         ("CreateFake en_us 条目", len(flatten_strings(CREATE_FAKE_EN_US)), 20),
         ("ForgeFake en_us 条目", len(flatten_strings(FORGE_FAKE_EN_US)), 8),
@@ -385,7 +331,6 @@ def self_check(out_dir: Path) -> None:
     if problems:
         raise SystemExit("夹具自检失败:\n  - " + "\n  - ".join(problems))
 
-
 def describe(out_dir: Path) -> None:
     files = sorted(p for p in out_dir.rglob("*") if p.is_file())
     total = sum(p.stat().st_size for p in files)
@@ -408,7 +353,6 @@ def describe(out_dir: Path) -> None:
     print("  KubeJS en_us     : " + str(len(flatten_strings(KUBEJS_EN_US))))
     print("  custom_ns en_us  : " + str(len(flatten_strings(CUSTOM_NS_EN_US))))
 
-
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="生成 DST MC I18n Tool 的测试夹具")
     parser.add_argument("--out", default=str(DEFAULT_OUT), help="输出目录（默认 tests/fixtures/instance）")
@@ -423,7 +367,6 @@ def main(argv=None) -> int:
     print()
     print("夹具生成完成: " + str(out_dir))
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

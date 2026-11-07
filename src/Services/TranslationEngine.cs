@@ -5,10 +5,6 @@ using DstMcI18n.Core;
 
 namespace DstMcI18n.Services;
 
-/// <summary>
-/// Runs batch translation for one document. LLM mode asks the model for strict JSON,
-/// validates placeholders, and can pause to ask the user about domain terminology.
-/// </summary>
 public sealed class TranslationEngine
 {
     private static readonly string Fence = new string((char)96, 3);
@@ -146,8 +142,6 @@ public sealed class TranslationEngine
         job.Failed = job.Items.Count(i => i.Status == "error");
     }
 
-    // ---------------- machine translation ----------------
-
     private async Task RunMachineAsync(
         TranslationJob job, List<TranslationItem> pending, TranslationRequest request,
         AppSettings settings, CancellationToken ct)
@@ -192,8 +186,6 @@ public sealed class TranslationEngine
             job.Failed = job.Items.Count(i => i.Status == "error");
         }
     }
-
-    // ---------------- LLM translation ----------------
 
     private async Task RunLlmAsync(
         TranslationJob job, List<TranslationItem> pending, TranslationRequest request,

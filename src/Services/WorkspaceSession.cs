@@ -3,7 +3,6 @@ using DstMcI18n.Core;
 
 namespace DstMcI18n.Services;
 
-/// <summary>Holds the currently opened Minecraft instance, its last scan and any running scan.</summary>
 public sealed class WorkspaceSession
 {
     private readonly object _gate = new();
@@ -20,7 +19,6 @@ public sealed class WorkspaceSession
         get { lock (_gate) return _info; }
     }
 
-    /// <summary>The scan currently running, if any.</summary>
     public string? ActiveScanId
     {
         get { lock (_gate) return _activeScanId; }
@@ -54,8 +52,6 @@ public sealed class WorkspaceSession
             return _info;
         }
     }
-
-    // ---------------- asynchronous scan ----------------
 
     public sealed class ScanState
     {
@@ -149,7 +145,7 @@ public sealed class WorkspaceSession
                 {
                     if (_activeScanId == progress.ScanId) _activeScanId = null;
                 }
-                // keep the finished state around briefly for the UI to read
+
                 _ = Task.Delay(TimeSpan.FromMinutes(10)).ContinueWith(_ =>
                 {
                     _scans.TryRemove(progress.ScanId, out var _);

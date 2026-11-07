@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Link the production sources so the harness tests the real code, not a copy. -->
+
     <Compile Include="../../src/Core/*.cs" />
     <Compile Include="../../src/Services/Exporters.cs" />
   </ItemGroup>

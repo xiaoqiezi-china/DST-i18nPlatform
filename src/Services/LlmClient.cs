@@ -11,7 +11,6 @@ public sealed class LlmException : Exception
     public LlmException(string message, Exception? inner = null) : base(message, inner) { }
 }
 
-/// <summary>Minimal OpenAI-compatible chat-completions client (works with DeepSeek out of the box).</summary>
 public sealed class LlmClient
 {
     private readonly HttpClient _http;

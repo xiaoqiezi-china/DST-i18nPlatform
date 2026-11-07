@@ -10,7 +10,6 @@
 </head>
 <body>
 
-<!-- ============ SVG 图标库（全部内联，无外部资源） ============ -->
 <svg xmlns="http://www.w3.org/2000/svg" class="svg-sprite" aria-hidden="true" focusable="false">
   <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2"/><path d="M12 3.4a15.2 15.2 0 0 1 0 17.2a15.2 15.2 0 0 1 0-17.2z"/><path d="M6.2 5.4c1.7 1.5 3.4 2.4 5.8 2.4s4.1-.9 5.8-2.4"/></symbol>
   <symbol id="i-package" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></symbol>
@@ -50,7 +49,7 @@
 </svg>
 
 <div class="app">
-  <!-- ================= 顶部栏 ================= -->
+
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark"><svg class="icon" viewBox="0 0 24 24"><use href="#i-logo"/></svg></span>
@@ -83,7 +82,7 @@
   </header>
 
   <div class="shell">
-    <!-- ================= 侧边导航 ================= -->
+
     <aside class="sidebar">
       <nav class="nav" id="nav">
         <button class="nav-item active" data-page="mods">
@@ -122,10 +121,8 @@
       </div>
     </aside>
 
-    <!-- ================= 主内容区 ================= -->
     <main class="content" id="content">
 
-      <!-- ---------- 页面：模组本地化 ---------- -->
       <section class="page" id="page-mods">
         <div class="page-head">
           <div class="page-head-text">
@@ -167,7 +164,6 @@
           <div class="list-empty" id="mods-list-empty" hidden>没有匹配的模组</div>
         </div>
 
-        <!-- 模组详情：语言文件列表 -->
         <div id="mod-detail" hidden>
           <div class="breadcrumb">
             <button class="crumb-link" id="btn-mod-back">模组本地化</button>
@@ -180,7 +176,6 @@
         </div>
       </section>
 
-      <!-- ---------- 页面：KubeJS ---------- -->
       <section class="page" id="page-kubejs" hidden>
         <div class="page-head">
           <div class="page-head-text">
@@ -219,7 +214,6 @@
         </div>
       </section>
 
-      <!-- ---------- 页面：FTB Quests ---------- -->
       <section class="page" id="page-ftb" hidden>
         <div class="page-head">
           <div class="page-head-text">
@@ -258,7 +252,6 @@
         </div>
       </section>
 
-      <!-- ---------- 页面：文件编辑（键值表） ---------- -->
       <section class="page" id="page-file" hidden>
         <div class="page-head">
           <div class="page-head-text with-back">
@@ -280,7 +273,6 @@
           </div>
         </div>
 
-        <!-- 翻译工具条 -->
         <div class="translate-bar card">
           <div class="tb-field">
             <label class="tb-label">翻译模式</label>
@@ -331,7 +323,6 @@
             placeholder="item.create.mechanical_press:机械压印机&#10;kinetic_mechanism=动力机构&#10;cogwheel=齿轮"></textarea>
         </div>
 
-        <!-- 翻译任务面板 -->
         <div class="job-panel card" id="job-panel" hidden>
           <div class="job-head">
             <div class="job-title-wrap">
@@ -368,7 +359,6 @@
           <div class="job-items" id="job-items"></div>
         </div>
 
-        <!-- 键值表 -->
         <div class="card table-card">
           <div class="table-toolbar">
             <div class="search-field">
@@ -418,7 +408,6 @@
         </div>
       </section>
 
-      <!-- ---------- 页面：设置 ---------- -->
       <section class="page" id="page-settings" hidden>
         <div class="page-head">
           <div class="page-head-text">
@@ -436,7 +425,7 @@
         </div>
 
         <div class="settings-grid">
-          <!-- LLM -->
+
           <div class="card settings-card">
             <div class="card-head">
               <div class="card-head-icon"><svg class="icon" viewBox="0 0 24 24"><use href="#i-sparkles"/></svg></div>
@@ -505,7 +494,6 @@
             </div>
           </div>
 
-          <!-- 机翻 -->
           <div class="card settings-card">
             <div class="card-head">
               <div class="card-head-icon alt"><svg class="icon" viewBox="0 0 24 24"><use href="#i-globe"/></svg></div>
@@ -542,7 +530,6 @@
             </div>
           </div>
 
-          <!-- 外观 -->
           <div class="card settings-card">
             <div class="card-head">
               <div class="card-head-icon"><svg class="icon" viewBox="0 0 24 24"><use href="#i-sun"/></svg></div>
@@ -570,7 +557,6 @@
             </div>
           </div>
 
-          <!-- 关于 -->
           <div class="card settings-card about-card">
             <div class="card-head">
               <div class="card-head-icon"><svg class="icon" viewBox="0 0 24 24"><use href="#i-info"/></svg></div>
@@ -587,7 +573,6 @@
             </ul>
           </div>
 
-          <!-- 翻译提示词 -->
           <div class="card settings-card span-all">
             <div class="card-head">
               <div class="card-head-icon alt"><svg class="icon" viewBox="0 0 24 24"><use href="#i-list"/></svg></div>
@@ -618,7 +603,6 @@
   </div>
 </div>
 
-<!-- ================= 模态框：内置目录浏览器 ================= -->
 <div class="overlay" id="overlay-browse" hidden>
   <div class="modal modal-browse" role="dialog" aria-modal="true" aria-labelledby="browse-title">
     <header class="modal-head">
@@ -654,7 +638,6 @@
   </div>
 </div>
 
-<!-- ================= 模态框：生成资源包 ================= -->
 <div class="overlay" id="overlay-pack" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pack-title">
     <header class="modal-head">
@@ -671,7 +654,7 @@
           <span id="pack-summary">语言文件与 pack.mcmeta</span>
         </div>
       </div>
-      <!-- 仅资源包模式：名称 / 版本号 / MC 版本 / pack_format -->
+
       <div class="field-grid" id="pack-fields-resourcepack">
         <div class="field span-2">
           <label for="pack-name">资源包名称</label>
@@ -714,7 +697,6 @@
         </div>
       </div>
 
-      <!-- 仅覆盖包模式：目标语言 / 包含范围 -->
       <div class="field-grid" id="pack-fields-overlay" hidden>
         <div class="field">
           <label for="pack-overlay-lang">目标语言</label>
@@ -754,7 +736,6 @@
   </div>
 </div>
 
-<!-- ================= 模态框：解析工作目录进度 ================= -->
 <div class="overlay" id="overlay-scan" hidden>
   <div class="modal modal-scan" role="dialog" aria-modal="true" aria-labelledby="scan-title">
     <header class="modal-head">
@@ -799,7 +780,6 @@
   </div>
 </div>
 
-<!-- ================= 模态框：目录不合法 ================= -->
 <div class="overlay" id="overlay-ws-invalid" hidden>
   <div class="modal modal-confirm" role="dialog" aria-modal="true" aria-labelledby="ws-invalid-title">
     <header class="modal-head">
@@ -831,7 +811,6 @@
   </div>
 </div>
 
-<!-- ================= 模态框：LLM 提问 ================= -->
 <div class="overlay" id="overlay-questions" hidden>
   <div class="modal modal-questions" role="dialog" aria-modal="true" aria-labelledby="questions-title">
     <header class="modal-head">
@@ -855,7 +834,6 @@
   </div>
 </div>
 
-<!-- ================= 模态框：通用确认 ================= -->
 <div class="overlay" id="overlay-confirm" hidden>
   <div class="modal modal-confirm" role="dialog" aria-modal="true">
     <header class="modal-head">
@@ -875,7 +853,6 @@
   </div>
 </div>
 
-<!-- ================= 模态框：选择要导出的语言文件 ================= -->
 <div class="overlay" id="overlay-pick-file" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pick-file-title">
     <header class="modal-head">
@@ -899,7 +876,6 @@
   </div>
 </div>
 
-<!-- ================= 提示条 ================= -->
 <div class="toast-stack" id="toast-stack"></div>
 
 <script src="/app.js"></script>

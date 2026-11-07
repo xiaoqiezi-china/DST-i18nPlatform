@@ -7,10 +7,6 @@ using DstMcI18n.Services;
 
 namespace DstMcI18n.ExportHarness;
 
-/// <summary>
-/// Console test harness for Exporters. Links the real src/Core and src/Services/Exporters.cs
-/// sources, produces artifacts under tests/ExportHarness/out and prints PASS/FAIL per check.
-/// </summary>
 internal static class Program
 {
     private static readonly List<string> Failures = new();
@@ -45,8 +41,6 @@ internal static class Program
         return 1;
     }
 
-    // --------------------------------------------------------------- lang json
-
     private static void TestBuildLangJson()
     {
         var entries = new List<LangEntry>
@@ -66,7 +60,7 @@ internal static class Program
             var node = JsonNode.Parse(text) as JsonObject;
             Assert(node is not null, "root is not a JSON object");
             AssertEqual(6, node!.Count, "property count");
-            // Dotted keys must stay one flat property, never nested.
+
             Assert(node.ContainsKey("item.create.cogwheel"), "dotted key was expanded");
             AssertEqual("齿轮", (string?)node["item.create.cogwheel"], "value");
             AssertEqual("他说 \"你好\"", (string?)node["with.quote"], "escaped quote round trip");
@@ -140,8 +134,6 @@ internal static class Program
         });
     }
 
-    // ------------------------------------------------------------- pack format
-
     private static void TestResolvePackFormat()
     {
         var cases = new (string? Version, int Expected)[]
@@ -187,8 +179,6 @@ internal static class Program
             AssertEqual(6, Exporters.ResolvePackFormat(null, 6), "explicit format without version");
         });
     }
-
-    // ----------------------------------------------------------- resource pack
 
     private static void TestResourcePack()
     {
@@ -327,8 +317,6 @@ internal static class Program
         });
     }
 
-    // --------------------------------------------------------------- overlay
-
     private static void TestOverlayZip()
     {
         var files = new List<OverlayFile>
@@ -420,8 +408,6 @@ internal static class Program
         });
     }
 
-    // ------------------------------------------------------------ safe names
-
     private static void TestSafeFileName()
     {
         Check("SafeFileName: strips Windows illegal characters", () =>
@@ -477,9 +463,6 @@ internal static class Program
         });
     }
 
-    // --------------------------------------------------------------- helpers
-
-    /// <summary>All entries must carry one identical, non-"now" timestamp.</summary>
     private static void AssertSameTimestamp(ZipArchive zip)
     {
         Assert(zip.Entries.Count > 0, "zip has no entries");
@@ -487,8 +470,6 @@ internal static class Program
         foreach (var entry in zip.Entries)
             AssertEqual(first, entry.LastWriteTime, "timestamp of " + entry.FullName);
 
-        // The DOS timestamp is stored as local time, so compare the date loosely but
-        // make sure it is a fixed past date rather than "now".
         AssertEqual(2020, first.Year, "fixed timestamp year");
         Assert(Math.Abs((DateTimeOffset.UtcNow - first).TotalDays) > 365, "timestamp looks like the current time");
     }

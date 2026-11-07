@@ -1,16 +1,4 @@
-#!/usr/bin/env bash
-# DST MC I18n Tool 一键发布脚本（git-bash / WSL / Linux 上的 bash）。
-#
-# 调用 dotnet publish 生成 win-x64 自包含程序（普通多文件发布，不做单文件/自解压），产物输出到 dist/。
-# 前端资源（wwwroot）在构建时作为 EmbeddedResource 打进程序集，因此 dist 里不需要带 wwwroot。
-#
-# 用法：
-#   ./build.sh
-#   ./build.sh --configuration Debug --output dist-debug
-#   ./build.sh --clean
-#   ./build.sh --pack                  # 额外打成可分发的 zip（发版用）
-#
-# 注意：目标运行时固定为 win-x64，因此即使脚本跑在 Linux 上，产物也是 Windows exe。
+
 
 set -euo pipefail
 
@@ -78,7 +66,6 @@ if ! command -v dotnet >/dev/null 2>&1; then
     exit 1
 fi
 
-# 相对路径按仓库根目录解析（与 build.ps1 一致）
 case "$OUTPUT" in
     /*|[A-Za-z]:*) OUT_DIR="$OUTPUT" ;;
     *) OUT_DIR="$ROOT/$OUTPUT" ;;
@@ -122,8 +109,6 @@ echo "  \"$EXE\" --path \"<整合包目录>\""
 echo "  \"$EXE\" --help"
 echo
 
-# 打包成 zip。这一步必须走 tools/pack.py 而不是 Compress-Archive：
-# PowerShell 那个实现在这个体量上会产出截断包，2026-11 就是这么坏过一次。
 if [[ "$PACK" -eq 1 ]]; then
     if ! command -v python >/dev/null 2>&1; then
         echo "没有找到 python，无法打包。请安装 Python 3 或手动打包。" >&2

@@ -11,7 +11,6 @@ public sealed class MtException : Exception
     public MtException(string message, Exception? inner = null) : base(message, inner) { }
 }
 
-/// <summary>Free/bring-your-own machine translation backends.</summary>
 public sealed class MachineTranslator
 {
     private readonly HttpClient _http;

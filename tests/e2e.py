@@ -1,28 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""DST MC I18n Tool 端到端（e2e）验收脚本。
-
-只用 Python 3 标准库（urllib / subprocess / zipfile / json / socket），
-不依赖 requests、pytest 等第三方包。
-
-它会：
-  1. 确保测试夹具存在（不存在时自动调用 tests/make_fixtures.py 生成）；
-  2. 以 --path <夹具> --port <随机空闲端口> --no-browser 启动发布后的 exe；
-  3. 轮询 /api/health 直到服务就绪；
-  4. 依次验证工作目录扫描、三类文档读取、四种导出产物与若干错误分支；
-  5. 结束进程，打印 PASS / FAIL / WARN 汇总，并以退出码表示结果。
-
-用法：
-    python tests/e2e.py
-    python tests/e2e.py --exe dist/DST-MC-I18n-Tool.exe
-    python tests/e2e.py --exe "D:/build/DST-MC-I18n-Tool.exe" --timeout 90 --verbose
-
-退出码：
-    0  所有必需检查通过（可能有 WARN）
-    1  存在 FAIL
-    2  无法开始测试（exe 不存在 / 夹具生成失败 / 服务启动失败）
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -46,10 +21,9 @@ FIXTURES = ROOT / "tests" / "fixtures" / "instance"
 DEFAULT_EXE = ROOT / "dist" / "DST-MC-I18n-Tool.exe"
 MAKE_FIXTURES = ROOT / "tests" / "make_fixtures.py"
 
-
 def _setup_stdout() -> None:
-    """输出被重定向（管道 / CI 日志）时强制 UTF-8，避免 Windows 代码页乱码；
-    直接挂在控制台（tty）时保持系统默认编码。"""
+    pass
+
     for stream in (sys.stdout, sys.stderr):
         try:
             if not stream.isatty():
@@ -57,22 +31,13 @@ def _setup_stdout() -> None:
         except Exception:
             pass
 
-
 _setup_stdout()
 
-
-
-# ---------------------------------------------------------------------------
-# 结果收集
-# ---------------------------------------------------------------------------
-
 class CheckFailure(AssertionError):
-    """单个检查项失败。"""
-
+    pass
 
 class SetupError(RuntimeError):
-    """测试无法开始（exe 缺失、夹具生成失败等），对应退出码 2。"""
-
+    pass
 
 class Reporter:
     def __init__(self, verbose: bool = False):
@@ -98,32 +63,25 @@ class Reporter:
         print("  [WARN] " + name + "  " + detail)
 
     def run(self, name: str, fn, *args, **kwargs) -> None:
-        """执行一个检查；断言失败记 FAIL，其余异常记 FAIL（带堆栈摘要）。"""
+        pass
         try:
             detail = fn(*args, **kwargs)
         except CheckFailure as exc:
             self.fail(name, str(exc))
-        except Exception as exc:  # noqa: BLE001 - 测试脚本要收集所有异常
+        except Exception as exc:
             if self.verbose:
                 traceback.print_exc()
             self.fail(name, type(exc).__name__ + ": " + str(exc))
         else:
             self.ok(name, detail or "")
 
-
 def require(condition, message: str) -> None:
     if not condition:
         raise CheckFailure(message)
 
-
 def require_eq(actual, expected, label: str) -> None:
     if actual != expected:
         raise CheckFailure(label + " 期望 " + repr(expected) + "，实际 " + repr(actual))
-
-
-# ---------------------------------------------------------------------------
-# HTTP 辅助
-# ---------------------------------------------------------------------------
 
 class HttpResult:
     def __init__(self, status: int, headers, body: bytes, url: str):
@@ -139,10 +97,9 @@ class HttpResult:
     def json(self):
         try:
             return json.loads(self.body.decode("utf-8-sig"))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             preview = self.body[:300]
             raise CheckFailure("响应不是合法 JSON: " + str(exc) + " body=" + repr(preview))
-
 
 def http(method: str, url: str, payload=None, timeout: float = 30.0) -> HttpResult:
     data = None
@@ -157,7 +114,6 @@ def http(method: str, url: str, payload=None, timeout: float = 30.0) -> HttpResu
     except urllib.error.HTTPError as exc:
         return HttpResult(exc.code, dict(exc.headers), exc.read(), url)
 
-
 def http_ok(method: str, url: str, payload=None, timeout: float = 30.0) -> HttpResult:
     res = http(method, url, payload, timeout)
     if res.status != 200:
@@ -165,16 +121,10 @@ def http_ok(method: str, url: str, payload=None, timeout: float = 30.0) -> HttpR
                            " body=" + res.body[:300].decode("utf-8", "replace"))
     return res
 
-
-# ---------------------------------------------------------------------------
-# 端口 / 进程
-# ---------------------------------------------------------------------------
-
 def find_free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(("127.0.0.1", 0))
         return sock.getsockname()[1]
-
 
 def wait_for_health(base_url: str, proc: subprocess.Popen, timeout: float) -> dict:
     deadline = time.time() + timeout
@@ -190,11 +140,10 @@ def wait_for_health(base_url: str, proc: subprocess.Popen, timeout: float) -> di
             if res.status == 200:
                 return res.json()
             last_error = "HTTP " + str(res.status)
-        except Exception as exc:  # noqa: BLE001 - 连接失败是预期内的重试
+        except Exception as exc:
             last_error = type(exc).__name__ + ": " + str(exc)
         time.sleep(0.25)
     raise RuntimeError("等待 /api/health 超时（" + str(timeout) + "s），最后错误: " + last_error)
-
 
 def read_tail(path: Path, limit: int = 4000) -> str:
     try:
@@ -205,15 +154,10 @@ def read_tail(path: Path, limit: int = 4000) -> str:
         data = data[-limit:]
     return data.decode("utf-8", "replace")
 
-
-# ---------------------------------------------------------------------------
-# 检查用的常量与辅助
-# ---------------------------------------------------------------------------
-
 MOD_FILE = "CreateFake-1.0.0.jar"
 MOD_NS = "createfake"
 KUBEJS_REL = "assets/custom_ns/lang/en_us.json"
-# ftb 的 path 是相对于 config/ftbquests 的相对路径
+
 FTB_REL = "quests/lang/en_us.snbt"
 FTB_CHAPTER_REL = "quests/chapters/chapter1.snbt"
 
@@ -236,17 +180,14 @@ FTB_TRANSLATED = [
     {"key": "chapter.1.title", "value": "开始游戏"},
 ]
 
-
 def read_zip(body: bytes, label: str) -> zipfile.ZipFile:
     try:
         return zipfile.ZipFile(io.BytesIO(body))
     except zipfile.BadZipFile as exc:
         raise CheckFailure(label + " 不是合法 zip: " + str(exc)) from exc
 
-
 def zip_names(zf: zipfile.ZipFile):
     return [info.filename.replace("\\", "/") for info in zf.infolist() if not info.is_dir()]
-
 
 def zip_read_json(zf: zipfile.ZipFile, name: str):
     try:
@@ -255,21 +196,14 @@ def zip_read_json(zf: zipfile.ZipFile, name: str):
         raise CheckFailure("zip 中缺少 " + name + "，实际条目: " + ", ".join(zip_names(zf))) from exc
     try:
         return json.loads(raw.decode("utf-8-sig"))
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise CheckFailure(name + " 不是合法 JSON: " + str(exc) + " body=" + repr(raw[:200])) from exc
-
 
 def assert_no_bom(raw: bytes, label: str) -> None:
     require(not raw.startswith(b"\xef\xbb\xbf"), label + " 不应带 UTF-8 BOM")
 
-
 def assert_utf8_chinese(raw: bytes, chinese: str, label: str) -> None:
     require(chinese.encode("utf-8") in raw, label + " 应以 UTF-8 原文包含 " + repr(chinese) + "（中文不应被 \\u 转义）")
-
-
-# ---------------------------------------------------------------------------
-# 各项检查
-# ---------------------------------------------------------------------------
 
 def check_health(base_url: str, health: dict) -> str:
     require(health.get("ok") is True, "health.ok 应为 true，实际 " + repr(health.get("ok")))
@@ -277,7 +211,6 @@ def check_health(base_url: str, health: dict) -> str:
     require(isinstance(health.get("version"), str) and health["version"], "health.version 缺失")
     require(isinstance(health.get("pid"), int) and health["pid"] > 0, "health.pid 缺失或非法")
     return "name=" + str(health["name"]) + " version=" + str(health["version"]) + " pid=" + str(health["pid"])
-
 
 def check_workspace(base_url: str, fixture: Path) -> str:
     data = http_ok("GET", base_url + "/api/workspace?path=" + urllib.parse.quote(str(fixture))).json()
@@ -324,9 +257,8 @@ def check_workspace(base_url: str, fixture: Path) -> str:
     return ("mods=" + str(len(mod_list)) + " kubejsFiles=" + str(len(kubejs.get("files") or [])) +
             " ftbFiles=" + str(len(ftb.get("files") or [])) + " version=" + str(data.get("gameVersion")))
 
-
 def check_document_mod(base_url: str) -> str:
-    # API.md 写的是 namespace=，实现里同时接受 ns=；两个都传，避免契约/实现差异导致误判。
+
     query = urllib.parse.urlencode({"kind": "mod", "file": MOD_FILE, "ns": MOD_NS,
                                     "namespace": MOD_NS, "lang": "en_us"})
     doc = http_ok("GET", base_url + "/api/document?" + query).json()
@@ -345,7 +277,6 @@ def check_document_mod(base_url: str) -> str:
     require(isinstance(doc.get("existing"), dict), "document.existing 应为对象")
     return "entries=" + str(len(entries)) + " hasExisting=" + str(doc.get("hasExisting"))
 
-
 def check_document_kubejs(base_url: str) -> str:
     query = urllib.parse.urlencode({"kind": "kubejs", "path": KUBEJS_REL})
     doc = http_ok("GET", base_url + "/api/document?" + query).json()
@@ -359,7 +290,6 @@ def check_document_kubejs(base_url: str) -> str:
     require(existing.get("item.custom_ns.magic_wand") == "魔法杖",
             "existing 应包含已有中文翻译，实际 " + repr(existing))
     return "entries=" + str(len(entries)) + " existing=" + str(len(existing))
-
 
 def check_document_ftb(base_url: str) -> str:
     query = urllib.parse.urlencode({"kind": "ftb", "path": FTB_REL})
@@ -375,13 +305,12 @@ def check_document_ftb(base_url: str) -> str:
     chapter = http_ok("GET", base_url + "/api/document?" + chapter_query).json()
     require_eq(chapter.get("format"), "snbt", "chapter1.snbt format")
     chapter_entries = chapter.get("entries") or []
-    # 嵌套结构会被扁平化（数组下标形如 quests.[0].id），这里只断言关键文本被正确解析出来
+
     chapter_values = [e.get("value") for e in chapter_entries]
     require("Getting Started" in chapter_values, "chapter1.snbt 应解析出 title=Getting Started")
     require("chapter1" in chapter_values, "chapter1.snbt 应解析出 id=chapter1")
     require(len(chapter_entries) >= 5, "chapter1.snbt 条目数应 >= 5，实际 " + str(len(chapter_entries)))
     return "entries=" + str(len(table)) + " chapterEntries=" + str(len(chapter_entries))
-
 
 def check_document_error(base_url: str) -> str:
     res = http("GET", base_url + "/api/document?kind=mod&file=NoSuchMod.jar&namespace=x")
@@ -390,7 +319,6 @@ def check_document_error(base_url: str) -> str:
     require(isinstance(data.get("error"), str) and data["error"],
             "错误响应应为 {\"error\": \"message\"}，实际 " + repr(data)[:200])
     return "HTTP " + str(res.status) + " error=" + data["error"][:60]
-
 
 def check_export_lang(base_url: str) -> str:
     res = http_ok("POST", base_url + "/api/export/lang", {
@@ -410,12 +338,11 @@ def check_export_lang(base_url: str) -> str:
     require_eq(data.get("item.createfake.cogwheel"), "齿轮", "导出 json 译文")
     require_eq(data.get("createfake.tooltip.kinetic"), "应力：%s SU", "导出 json 占位符")
     require_eq(data.get("createfake.message.line_break"), "第一行\n第二行\n第三行", "导出 json 换行")
-    # 导出的是「原文全文 + 译文覆盖」，因此未翻译的键应保持英文原文
+
     require(len(data) >= 20, "导出 json 应包含完整语言表（>=20 条），实际 " + str(len(data)))
     require_eq(data.get("item.createfake.shaft"), "传动轴", "导出 json 第二条译文")
     require_eq(data.get("item.createfake.andesite_alloy"), "Andesite Alloy", "未翻译的键应保留原文")
     return "bytes=" + str(len(res.body)) + " entries=" + str(len(data))
-
 
 def check_export_resourcepack(base_url: str) -> str:
     res = http_ok("POST", base_url + "/api/export/resourcepack", {
@@ -455,18 +382,17 @@ def check_export_resourcepack(base_url: str) -> str:
         detail += " pack.png=no"
     return detail
 
-
 def check_export_kubejs_overlay(base_url: str) -> str:
-    # 覆盖包不再需要版本号：请求体里只有 files + targetLanguage
+
     res = http_ok("POST", base_url + "/api/export/kubejs-overlay", {
-        # path 传源语言文件（en_us），导出时服务端会换成 zh_cn
+
         "files": [{"path": KUBEJS_REL, "entries": KUBEJS_TRANSLATED}],
         "targetLanguage": "zh_cn",
     })
     require("attachment" in res.content_disposition.lower(), "kubejs 覆盖包应作为附件下载")
     zf = read_zip(res.body, "kubejs-overlay")
     names = zip_names(zf)
-    # 覆盖包直接解压到整合包根目录，因此路径以 kubejs/ 开头
+
     target = "kubejs/assets/custom_ns/lang/zh_cn.json"
     require(target in names, "覆盖包缺少 " + target + "，实际: " + ", ".join(names))
     data = zip_read_json(zf, target)
@@ -475,9 +401,8 @@ def check_export_kubejs_overlay(base_url: str) -> str:
     require(not any("v1" in n for n in names), "覆盖包内不应出现版本号目录")
     return "files=" + str(len(names)) + " hasReadme=" + str(any(n.lower() == "readme.txt" for n in names))
 
-
 def check_export_kubejs_overlay_all(base_url: str) -> str:
-    # files 省略 = 导出全部 kubejs 语言文件
+
     res = http_ok("POST", base_url + "/api/export/kubejs-overlay", {"targetLanguage": "zh_cn"})
     zf = read_zip(res.body, "kubejs-overlay-all")
     names = [n for n in zip_names(zf) if n.endswith(".json")]
@@ -485,7 +410,6 @@ def check_export_kubejs_overlay_all(base_url: str) -> str:
     require(all(n.startswith("kubejs/") for n in names), "路径应以 kubejs/ 开头: " + ", ".join(names))
     require(all(n.endswith("zh_cn.json") for n in names), "语言名应换成 zh_cn: " + ", ".join(names))
     return "files=" + str(len(names))
-
 
 def check_export_ftb_overlay(base_url: str) -> str:
     res = http_ok("POST", base_url + "/api/export/ftb-overlay", {
@@ -503,7 +427,6 @@ def check_export_ftb_overlay(base_url: str) -> str:
     require("chapter.2.subtitle" in raw, "ftb 覆盖包应保留完整语言表")
     return "files=" + str(len(names)) + " bytes=" + str(len(raw))
 
-
 def check_export_ftb_overlay_all(base_url: str) -> str:
     res = http_ok("POST", base_url + "/api/export/ftb-overlay", {"targetLanguage": "zh_cn"})
     zf = read_zip(res.body, "ftb-overlay-all")
@@ -511,7 +434,6 @@ def check_export_ftb_overlay_all(base_url: str) -> str:
     require(len(names) >= 1, "全部导出应包含 ftbquests 语言文件")
     require(all(n.startswith("config/ftbquests/") for n in names), "路径应以 config/ftbquests/ 开头: " + ", ".join(names))
     return "files=" + str(len(names))
-
 
 def check_export_write(base_url: str, workdir: Path) -> str:
     out_dir = workdir / "dst_i18n_output"
@@ -538,9 +460,8 @@ def check_export_write(base_url: str, workdir: Path) -> str:
         pass
     return "written=" + str(len(written))
 
-
 def check_browse(base_url: str, fixture: Path) -> str:
-    # 浏览夹具的父目录：夹具本身应被标记为含 mods/kubejs/config，方便用户在界面上识别
+
     parent = fixture.parent
     res = http_ok("GET", base_url + "/api/workspace/browse?path=" + urllib.parse.quote(str(parent)))
     data = res.json()
@@ -559,7 +480,6 @@ def check_browse(base_url: str, fixture: Path) -> str:
         require(expected in names, "browse 夹具目录时应列出 " + expected + "，实际 " + repr(names))
     return "dirs=" + str(len(dirs)) + " children=" + str(len(names))
 
-
 def check_translate_error(base_url: str) -> str:
     res = http("POST", base_url + "/api/translate", {
         "kind": "mod", "file": "NoSuchMod.jar", "namespace": "x", "mode": "llm",
@@ -569,25 +489,23 @@ def check_translate_error(base_url: str) -> str:
     require(isinstance(data.get("error"), str) and data["error"], "错误响应应为 {\"error\": ...}")
     return "HTTP " + str(res.status)
 
-
 def check_settings(base_url: str) -> str:
     data = http_ok("GET", base_url + "/api/settings").json()
     require_eq(data.get("llmApiKey"), "", "settings.llmApiKey 不应回传明文")
     require(isinstance(data.get("llmApiKeySet"), bool), "settings.llmApiKeySet 应为布尔值")
     require(isinstance(data.get("llmBaseUrl"), str) and data["llmBaseUrl"], "settings.llmBaseUrl 缺失")
     require(isinstance(data.get("llmModel"), str) and data["llmModel"], "settings.llmModel 缺失")
-    # 默认模型固定为 deepseek-flash，候选里同时提供 deepseek-v4-pro
+
     require_eq(data.get("llmModel"), "deepseek-flash", "默认模型应为 deepseek-flash")
     models = data.get("suggestedModels") or []
     require("deepseek-flash" in models and "deepseek-v4-pro" in models,
             "suggestedModels 应包含 deepseek-flash 与 deepseek-v4-pro，实际 " + repr(models))
     require_eq(data.get("llmTemperature"), 1, "默认温度应为 1")
-    # 默认提示词必须包含“非文本内容原样返回”的约束
+
     default_prompt = data.get("llmSystemPromptDefault") or ""
     require("item ID" in default_prompt or "物品ID" in default_prompt or "item id" in default_prompt.lower(),
             "默认提示词应包含“定义物品 ID 时原样返回”的说明")
     return "model=" + str(data.get("llmModel")) + " apiKeySet=" + str(data.get("llmApiKeySet"))
-
 
 def check_settings_prompt(base_url: str) -> str:
     before = http_ok("GET", base_url + "/api/settings").json()
@@ -613,15 +531,13 @@ def check_settings_prompt(base_url: str) -> str:
     require_eq(reset.get("llmSystemPromptDefault"), default_prompt, "恢复默认后仍应返回默认提示词")
     return "prompt len=" + str(len(default_prompt))
 
-
 def check_workspace_scan(base_url: str, fixture: Path) -> str:
-    # 非法目录：400 + valid=false
+
     res = http("POST", base_url + "/api/workspace/scan", {"path": "C:/Windows"})
     require(res.status == 400, "非法目录应返回 400，实际 " + str(res.status))
     bad = res.json()
     require(bad.get("valid") is False, "非法目录应返回 valid=false，实际 " + repr(bad)[:200])
 
-    # 合法目录：200 + scanId，随后可轮询到 done
     res = http_ok("POST", base_url + "/api/workspace/scan", {"path": str(fixture)})
     started = res.json()
     require(isinstance(started.get("scanId"), str) and started["scanId"], "应返回 scanId，实际 " + repr(started)[:200])
@@ -637,7 +553,7 @@ def check_workspace_scan(base_url: str, fixture: Path) -> str:
             break
     require_eq(last.get("status"), "done", "扫描应完成，实际 " + repr(last)[:300])
     require_eq(last.get("percent"), 100, "完成后 percent 应为 100")
-    # 夹具很小，扫描可能在第一次轮询前就结束，因此只要求阶段合法即可。
+
     require(set(phases) <= {"prepare", "mods", "kubejs", "ftb", "finish"},
             "扫描阶段取值非法，实际 " + repr(sorted(set(phases))))
     require_eq(last.get("phase"), "finish", "完成后 phase 应为 finish")
@@ -647,16 +563,14 @@ def check_workspace_scan(base_url: str, fixture: Path) -> str:
     require(len(ws.get("mods", {}).get("mods") or []) >= 2, "扫描后应找到模组")
     return "scanId=" + scan_id[:6] + " phases=" + str(len(set(phases)))
 
-
 def check_static_index(base_url: str) -> str:
     res = http_ok("GET", base_url + "/")
     require(b"<html" in res.body.lower() or b"<!doctype" in res.body.lower(),
             "GET / 应返回内置 index.html")
     return "bytes=" + str(len(res.body))
 
-
 def optional_pack_png(base_url: str, reporter: Reporter) -> None:
-    """pack.png 是 exporter 规范要求项，但 API.md 未强制；缺失只记 WARN。"""
+    pass
     try:
         res = http_ok("POST", base_url + "/api/export/resourcepack", {
             "kind": "mod",
@@ -674,11 +588,6 @@ def optional_pack_png(base_url: str, reporter: Reporter) -> None:
     except CheckFailure as exc:
         reporter.warn("资源包 pack.png", str(exc))
 
-
-# ---------------------------------------------------------------------------
-# 主流程
-# ---------------------------------------------------------------------------
-
 def ensure_fixtures(verbose: bool) -> None:
     if (FIXTURES / "version.json").is_file() and (FIXTURES / "mods" / MOD_FILE).is_file():
         return
@@ -686,7 +595,6 @@ def ensure_fixtures(verbose: bool) -> None:
     result = subprocess.run([sys.executable, str(MAKE_FIXTURES)], cwd=str(ROOT))
     if result.returncode != 0:
         raise SetupError("生成测试夹具失败（exit code " + str(result.returncode) + "）")
-
 
 def resolve_exe(explicit: str | None) -> Path:
     exe = Path(explicit) if explicit else DEFAULT_EXE
@@ -700,7 +608,6 @@ def resolve_exe(explicit: str | None) -> Path:
             "注意：本脚本只验证发布产物，不负责 dotnet build/publish。"
         )
     return exe
-
 
 def run_checks(base_url: str, fixture: Path, health: dict, reporter: Reporter) -> None:
     print("\n[1/6] 基础与工作目录")
@@ -734,7 +641,6 @@ def run_checks(base_url: str, fixture: Path, health: dict, reporter: Reporter) -
 
     print("\n[6/6] 写回工作目录")
     reporter.run("POST /api/export/write", check_export_write, base_url, fixture)
-
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="DST MC I18n Tool 端到端验收")
@@ -788,7 +694,7 @@ def main(argv=None) -> int:
     except SetupError as exc:
         print("[setup] " + str(exc), file=sys.stderr)
         return 2
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         if args.verbose:
             traceback.print_exc()
         reporter.fail("服务启动", type(exc).__name__ + ": " + str(exc))
@@ -844,7 +750,6 @@ def main(argv=None) -> int:
         return 1
     print("\n结果: PASS")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

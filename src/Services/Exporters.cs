@@ -6,58 +6,42 @@ using DstMcI18n.Core;
 
 namespace DstMcI18n.Services;
 
-/// <summary>Options shared by all packaging exports.</summary>
 public sealed class PackOptions
 {
     public string PackName { get; set; } = "汉化资源包";
     public string PackVersion { get; set; } = "1.0.0";
-    /// <summary>Minecraft version such as "1.20.1" (used to derive pack_format).</summary>
+
     public string? McVersion { get; set; }
-    /// <summary>Explicit pack_format; wins over McVersion when set.</summary>
+
     public int? PackFormat { get; set; }
     public string Description { get; set; } = "";
     public string TargetLanguage { get; set; } = "zh_cn";
 }
 
-/// <summary>One file that will be placed inside an overlay zip.</summary>
 public sealed class OverlayFile
 {
-    /// <summary>Path inside the zip, using forward slashes, no leading slash.</summary>
+
     public string ZipPath { get; set; } = "";
     public string Content { get; set; } = "";
 }
 
-/// <summary>
-/// Builds downloadable artifacts: lang json, resource packs and overlay zips.
-/// All methods are pure (no IO) so they can be unit tested.
-/// </summary>
 public static class Exporters
 {
-    /// <summary>pack_format used when the Minecraft version cannot be parsed.</summary>
+
     private const int DefaultPackFormat = 15;
 
-    /// <summary>Namespace used when the supplied namespace contains no usable characters.</summary>
     private const string UnknownNamespace = "unknown";
 
-    /// <summary>Language code used when none was supplied.</summary>
     private const string DefaultLanguage = "zh_cn";
 
-    /// <summary>Maximum length of a generated download file name.</summary>
     private const int MaxFileNameLength = 100;
 
-    /// <summary>Longest trailing suffix treated as a file extension when truncating.</summary>
     private const int MaxExtensionLength = 10;
 
-    /// <summary>Root-level readme written into every overlay zip.</summary>
     private const string ReadmeEntryName = "README.txt";
 
-    /// <summary>Edge length of the generated pack.png icon.</summary>
     private const int IconSize = 64;
 
-    /// <summary>
-    /// Fixed zip entry timestamp so repeated exports are byte-identical.
-    /// Midday keeps the stored date stable whatever the local UTC offset is.
-    /// </summary>
     private static readonly DateTimeOffset FixedZipTimestamp = new(2020, 7, 1, 12, 0, 0, TimeSpan.Zero);
 
     private static readonly byte[] PngSignature = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
@@ -79,7 +63,6 @@ public static class Exporters
         "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
     };
 
-    /// <summary>Exact Minecraft version to resource pack format mapping.</summary>
     private static readonly Dictionary<string, int> PackFormatByVersion = new(StringComparer.OrdinalIgnoreCase)
     {
         ["1.16.5"] = 6,
@@ -105,7 +88,6 @@ public static class Exporters
         ["1.21.5"] = 55
     };
 
-    /// <summary>Whole minor lines that share one pack format (documented as "x").</summary>
     private static readonly Dictionary<string, int> PackFormatByMinor = new(StringComparer.OrdinalIgnoreCase)
     {
         ["1.17"] = 7,
@@ -114,7 +96,6 @@ public static class Exporters
 
     private static readonly uint[] Crc32Table = BuildCrc32Table();
 
-    /// <summary>Serializes entries into a flat JSON object (UTF-8, no BOM).</summary>
     public static byte[] BuildLangJson(IEnumerable<LangEntry> entries, bool indented = true)
     {
         var root = new JsonObject();
@@ -123,7 +104,7 @@ public static class Exporters
             foreach (var entry in entries)
             {
                 if (entry?.Key is null) continue;
-                // Keys are written verbatim: dotted keys stay one flat property, never nested.
+
                 root[entry.Key] = entry.Value ?? string.Empty;
             }
         }
@@ -132,7 +113,6 @@ public static class Exporters
         return Encoding.UTF8.GetBytes(json);
     }
 
-    /// <summary>Maps a Minecraft version to the resource pack format number.</summary>
     public static int ResolvePackFormat(string? mcVersion, int? explicitFormat)
     {
         if (explicitFormat is > 0) return explicitFormat.Value;
@@ -154,10 +134,6 @@ public static class Exporters
         return DefaultPackFormat;
     }
 
-    /// <summary>
-    /// Builds a client resource pack zip:
-    /// pack.mcmeta + pack.png(optional) + assets/&lt;namespace&gt;/lang/&lt;lang&gt;.json
-    /// </summary>
     public static byte[] BuildResourcePack(string namespaceName, IEnumerable<LangEntry> entries, PackOptions options)
     {
         options ??= new PackOptions();
@@ -189,7 +165,6 @@ public static class Exporters
         return buffer.ToArray();
     }
 
-    /// <summary>Builds a generic overlay zip (kubejs / ftbquests) from explicit file list.</summary>
     public static byte[] BuildOverlayZip(IReadOnlyList<OverlayFile> files, PackOptions options)
     {
         if (files is null || files.Count == 0)
@@ -206,19 +181,16 @@ public static class Exporters
                 if (file is null) continue;
                 var path = NormalizeZipPath(file.ZipPath);
                 if (path.Length == 0) continue;
-                if (!seen.Add(path)) continue; // never write the same path twice
+                if (!seen.Add(path)) continue;
                 AddEntry(zip, path, Encoding.UTF8.GetBytes(file.Content ?? string.Empty));
             }
 
-            // README lives at the zip root so users know what to do with the archive.
-            // It is always generated by us, so a caller file with the same name is skipped.
             AddEntry(zip, ReadmeEntryName, BuildOverlayReadme(options));
         }
 
         return buffer.ToArray();
     }
 
-    /// <summary>Safe file name for downloads, e.g. "Create-1.20.1-zh_cn.zip".</summary>
     public static string SafeFileName(string raw, string fallback = "download")
     {
         var fallbackName = CleanFileName(fallback);
@@ -228,8 +200,6 @@ public static class Exporters
         var cleaned = CleanFileName(raw);
         return cleaned.Length == 0 ? fallbackName : cleaned;
     }
-
-    // ---------------------------------------------------------------- helpers
 
     private static void AddEntry(ZipArchive zip, string path, byte[] content)
     {
@@ -248,7 +218,6 @@ public static class Exporters
         return string.IsNullOrEmpty(version) ? name : name + " " + version;
     }
 
-    /// <summary>Normalizes a zip path: forward slashes, no leading slash, no "." / ".." segments.</summary>
     private static string NormalizeZipPath(string? path)
     {
         if (string.IsNullOrWhiteSpace(path)) return string.Empty;
@@ -293,7 +262,6 @@ public static class Exporters
         return Encoding.UTF8.GetBytes(sb.ToString());
     }
 
-    /// <summary>Keeps only [a-z0-9_.-]; everything else becomes "_", runs collapsed, edges trimmed.</summary>
     private static string SanitizeNamespace(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw)) return UnknownNamespace;
@@ -309,7 +277,6 @@ public static class Exporters
         return result.Length == 0 ? UnknownNamespace : result;
     }
 
-    /// <summary>Keeps only [a-z0-9_-] for the lang folder/file name.</summary>
     private static string SanitizeLanguage(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw)) return DefaultLanguage;
@@ -325,7 +292,6 @@ public static class Exporters
         return result.Length == 0 ? DefaultLanguage : result;
     }
 
-    /// <summary>Strips illegal characters, collapses whitespace, trims dots/spaces, caps length.</summary>
     private static string CleanFileName(string? raw)
     {
         if (string.IsNullOrEmpty(raw)) return string.Empty;
@@ -333,15 +299,15 @@ public static class Exporters
         var sb = new StringBuilder(raw.Length);
         foreach (var ch in raw)
         {
-            if (ch < 0x20 || ch == 0x7F) continue;              // control characters
-            if (Array.IndexOf(IllegalFileNameChars, ch) >= 0) continue; // < > : " / \ | ? *
+            if (ch < 0x20 || ch == 0x7F) continue;
+            if (Array.IndexOf(IllegalFileNameChars, ch) >= 0) continue;
             sb.Append(ch);
         }
 
         var text = WhitespaceRegex.Replace(sb.ToString(), " ").Trim(' ', '.');
         if (text.Length > MaxFileNameLength)
         {
-            // Keep a short trailing extension (".zip") instead of chopping it off.
+
             var extensionDot = text.LastIndexOf('.');
             var extension = extensionDot > 0 && text.Length - extensionDot <= MaxExtensionLength
                 ? text[extensionDot..]
@@ -366,7 +332,6 @@ public static class Exporters
         return text;
     }
 
-    /// <summary>Truncates to at most <paramref name="max"/> chars without splitting a surrogate pair.</summary>
     private static string Truncate(string value, int max)
     {
         if (value.Length <= max) return value.TrimEnd(' ', '.');
@@ -397,9 +362,6 @@ public static class Exporters
                minor.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
-    // ------------------------------------------------------------- pack icon
-
-    /// <summary>Generates a deterministic 64x64 PNG icon (RGBA, zlib-compressed) without external files.</summary>
     private static byte[] BuildPackIcon()
     {
         var stride = IconSize * 4;
@@ -408,7 +370,7 @@ public static class Exporters
         for (var y = 0; y < IconSize; y++)
         {
             var rowStart = y * (stride + 1);
-            raw[rowStart] = 0; // PNG filter type: none
+            raw[rowStart] = 0;
 
             var t = y / (double)(IconSize - 1);
             var bgR = (byte)Math.Round(24 + 46 * t);
@@ -436,7 +398,6 @@ public static class Exporters
             }
         }
 
-        // Simple "文" glyph so the pack is recognizable in the resource pack list.
         FillRect(raw, 30, 13, 4, 4, 255, 255, 255);
         FillRect(raw, 16, 23, 32, 4, 255, 255, 255);
         DrawLine(raw, 30, 29, 18, 49, 2.6, 255, 255, 255);
@@ -456,11 +417,11 @@ public static class Exporters
         var ihdr = new byte[13];
         WriteInt32BigEndian(ihdr, 0, IconSize);
         WriteInt32BigEndian(ihdr, 4, IconSize);
-        ihdr[8] = 8;  // bit depth
-        ihdr[9] = 6;  // color type: RGBA
-        ihdr[10] = 0; // compression
-        ihdr[11] = 0; // filter
-        ihdr[12] = 0; // interlace
+        ihdr[8] = 8;
+        ihdr[9] = 6;
+        ihdr[10] = 0;
+        ihdr[11] = 0;
+        ihdr[12] = 0;
         WritePngChunk(png, "IHDR", ihdr);
         WritePngChunk(png, "IDAT", compressed);
         WritePngChunk(png, "IEND", Array.Empty<byte>());

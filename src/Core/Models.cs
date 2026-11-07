@@ -2,24 +2,22 @@ using System.Text.Json.Serialization;
 
 namespace DstMcI18n.Core;
 
-/// <summary>One translatable key/value pair.</summary>
 public sealed class LangEntry
 {
     public string Key { get; set; } = "";
     public string Value { get; set; } = "";
-    /// <summary>Path segments used to write the value back into the source tree.</summary>
+
     [JsonIgnore] public string[]? Segments { get; set; }
 }
 
-/// <summary>A parsed language document (one lang file / snbt file).</summary>
 public sealed class LangDocument
 {
     public string Id { get; set; } = "";
-    public string Kind { get; set; } = "";          // mod | kubejs | ftbquests
-    public string OwnerId { get; set; } = "";       // mod id / namespace / ftbquests
+    public string Kind { get; set; } = "";
+    public string OwnerId { get; set; } = "";
     public string DisplayName { get; set; } = "";
-    public string RelativePath { get; set; } = "";  // relative to workspace root (or archive path for mods)
-    public string Format { get; set; } = "json";    // json | snbt
+    public string RelativePath { get; set; } = "";
+    public string Format { get; set; } = "json";
     public string SourceLanguage { get; set; } = "en_us";
     public string TargetLanguage { get; set; } = "zh_cn";
     public List<LangEntry> Entries { get; set; } = new();
@@ -27,7 +25,6 @@ public sealed class LangDocument
     [JsonIgnore] public string? RawContent { get; set; }
 }
 
-/// <summary>One language file inside a mod jar / mod folder.</summary>
 public sealed class ModLangFile
 {
     public string Namespace { get; set; } = "";
@@ -89,7 +86,6 @@ public sealed class FtbInfo
     public List<string> Warnings { get; set; } = new();
 }
 
-/// <summary>Result of scanning a Minecraft instance folder.</summary>
 public sealed class WorkspaceInfo
 {
     public string Path { get; set; } = "";
@@ -116,15 +112,14 @@ public sealed class ModsScan
     public List<string> Warnings { get; set; } = new();
 }
 
-/// <summary>Progress of an asynchronous workspace scan.</summary>
 public sealed class ScanProgress
 {
     public string ScanId { get; set; } = "";
     public string Path { get; set; } = "";
     public string Name { get; set; } = "";
-    /// <summary>running | done | cancelled | error</summary>
+
     public string Status { get; set; } = "running";
-    /// <summary>prepare | mods | kubejs | ftb | finish</summary>
+
     public string Phase { get; set; } = "prepare";
     public string PhaseLabel { get; set; } = "";
     public int Current { get; set; }
@@ -137,10 +132,9 @@ public sealed class ScanProgress
     public List<string> Warnings { get; set; } = new();
 }
 
-/// <summary>Application settings persisted globally (per user).</summary>
 public sealed class AppSettings
 {
-    /// <summary>Default model id; older DeepSeek ids (deepseek-chat) are migrated on load.</summary>
+
     public const string DefaultModel = "deepseek-flash";
 
     public static readonly string[] SuggestedModels = { "deepseek-flash", "deepseek-v4-pro" };
@@ -148,7 +142,7 @@ public sealed class AppSettings
     public string LlmBaseUrl { get; set; } = "https://api.deepseek.com/v1";
     public string LlmApiKey { get; set; } = "";
     public string LlmModel { get; set; } = DefaultModel;
-    /// <summary>User-editable system prompt. Empty means "use the built-in default".</summary>
+
     public string LlmSystemPrompt { get; set; } = "";
     public double LlmTemperature { get; set; } = 1.0;
     public int LlmMaxTokens { get; set; } = 4096;
@@ -162,7 +156,6 @@ public sealed class AppSettings
     public int BatchSize { get; set; } = 24;
 }
 
-/// <summary>Request to start a batch translation job.</summary>
 public sealed class TranslationRequest
 {
     public string DocumentId { get; set; } = "";
@@ -170,10 +163,10 @@ public sealed class TranslationRequest
     public string DisplayName { get; set; } = "";
     public string SourceLanguage { get; set; } = "en_us";
     public string TargetLanguage { get; set; } = "zh_cn";
-    public string Mode { get; set; } = "llm";     // llm | mt
+    public string Mode { get; set; } = "llm";
     public string? Provider { get; set; }
     public string? Context { get; set; }
-    /// <summary>Optional user-supplied system prompt override.</summary>
+
     public string? SystemPrompt { get; set; }
     public List<LangEntry> Entries { get; set; } = new();
     public Dictionary<string, string>? Glossary { get; set; }
@@ -188,7 +181,7 @@ public sealed class TranslationItem
     public string Key { get; set; } = "";
     public string Source { get; set; } = "";
     public string Target { get; set; } = "";
-    public string Status { get; set; } = "pending"; // pending | running | done | error | skipped
+    public string Status { get; set; } = "pending";
     public string? Error { get; set; }
 }
 
@@ -198,7 +191,7 @@ public sealed class TranslationQuestion
     public string Question { get; set; } = "";
     public List<string> Terms { get; set; } = new();
     public List<string> Options { get; set; } = new();
-    public string Status { get; set; } = "pending"; // pending | answered | expired
+    public string Status { get; set; } = "pending";
     public string? Answer { get; set; }
     public long AskedAt { get; set; }
 }
@@ -210,7 +203,7 @@ public sealed class TranslationJob
     public string DisplayName { get; set; } = "";
     public string Mode { get; set; } = "llm";
     public string? Provider { get; set; }
-    public string Status { get; set; } = "queued"; // queued | running | waiting_user | done | cancelled | error
+    public string Status { get; set; } = "queued";
     public int Total { get; set; }
     public int Done { get; set; }
     public int Failed { get; set; }

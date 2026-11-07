@@ -3,7 +3,6 @@ using DstMcI18n.Core;
 
 namespace DstMcI18n.Services;
 
-/// <summary>A document plus the parsed source tree needed for lossless export.</summary>
 public sealed class LoadedDocument
 {
     public DocumentResult Dto { get; set; } = new();
@@ -13,7 +12,6 @@ public sealed class LoadedDocument
     public string? SourcePath { get; set; }
 }
 
-/// <summary>Builds key/value tables (and keeps the source tree) for the opened workspace.</summary>
 public sealed class DocumentService
 {
     private readonly WorkspaceSession _session;
@@ -70,7 +68,7 @@ public sealed class DocumentService
                 }
                 catch
                 {
-                    // malformed existing translations are ignored
+
                 }
             }
         }
@@ -102,7 +100,6 @@ public sealed class DocumentService
         };
     }
 
-    /// <summary>Reads a language file from a jar or from an unpacked mod folder.</summary>
     private static string? ReadModText(ModInfo mod, string archivePath)
         => mod.IsFolder
             ? (File.Exists(Path.Combine(mod.Path, archivePath.Replace('/', Path.DirectorySeparatorChar)))
@@ -131,7 +128,7 @@ public sealed class DocumentService
             }
             catch
             {
-                // ignore
+
             }
         }
 
@@ -188,7 +185,7 @@ public sealed class DocumentService
                 }
                 catch
                 {
-                    // ignore
+
                 }
             }
         }

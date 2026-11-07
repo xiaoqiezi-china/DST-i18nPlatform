@@ -3,7 +3,6 @@ using System.Text;
 
 namespace DstMcI18n;
 
-/// <summary>Serves the single-page UI from embedded resources so the exe is self-contained.</summary>
 public sealed class AssetBundle
 {
     public string Html { get; set; } = "";
@@ -74,7 +73,6 @@ public static class EmbeddedAssets
         "<path d=\"M18 40V24h6l8 10 8-10h6v16h-5V31l-9 11-9-11v9z\" fill=\"#5cc8ff\"/></svg>";
 }
 
-/// <summary>Minimal Windows folder picker (no WinForms dependency).</summary>
 public static class FolderPicker
 {
     private static string FirstLine(string text)
@@ -88,8 +86,6 @@ public static class FolderPicker
         if (!OperatingSystem.IsWindows()) return null;
         if (!Environment.UserInteractive) throw new InvalidOperationException("当前会话没有桌面环境，无法显示系统文件夹选择框");
 
-        // Write the script to a temp .ps1 instead of passing it via -Command so that
-        // paths containing quotes, spaces or non-ASCII characters stay intact.
         var scriptPath = Path.Combine(Path.GetTempPath(), "dstmc-pick-" + Guid.NewGuid().ToString("N") + ".ps1");
         var lines = new List<string>
         {
@@ -121,12 +117,11 @@ public static class FolderPicker
             using var process = System.Diagnostics.Process.Start(psi)
                                 ?? throw new InvalidOperationException("无法启动文件夹选择器");
 
-            // Read asynchronously so a hung/headless PowerShell can never block forever.
             var readTask = process.StandardOutput.ReadToEndAsync();
             var errorTask = process.StandardError.ReadToEndAsync();
             if (!process.WaitForExit(TimeSpan.FromSeconds(45)))
             {
-                try { process.Kill(entireProcessTree: true); } catch { /* already gone */ }
+                try { process.Kill(entireProcessTree: true); } catch {   }
                 throw new TimeoutException("文件夹选择框没有响应");
             }
 
@@ -135,7 +130,7 @@ public static class FolderPicker
             var path = output.Trim();
             if (string.IsNullOrWhiteSpace(path))
             {
-                // PowerShell failed to build/show the dialog -> let the caller fall back.
+
                 if (process.ExitCode != 0 || error.Contains("Exception", StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException("无法显示系统文件夹选择框: " + FirstLine(error));
                 return null;
@@ -144,7 +139,7 @@ public static class FolderPicker
         }
         finally
         {
-            try { File.Delete(scriptPath); } catch { /* best effort */ }
+            try { File.Delete(scriptPath); } catch {   }
         }
     }
 }

@@ -1,6 +1,5 @@
 namespace DstMcI18n.Core;
 
-/// <summary>Wire format for a key/value table shown in the browser.</summary>
 public sealed class DocumentResult
 {
     public string Id { get; set; } = "";
@@ -14,7 +13,7 @@ public sealed class DocumentResult
     public List<LangEntry> Entries { get; set; } = new();
     public Dictionary<string, string> Existing { get; set; } = new(StringComparer.Ordinal);
     public bool HasExisting { get; set; }
-    /// <summary>True when the mod/kubejs/ftb already ships a zh_cn file that can be restored.</summary>
+
     public bool CanRestoreToExisting { get; set; }
     public string? ModId { get; set; }
     public string? NamespaceName { get; set; }

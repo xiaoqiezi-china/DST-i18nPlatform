@@ -1,12 +1,8 @@
-/* ============================================================
-   DST MC I18n Tool — 前端逻辑
-   纯原生 JavaScript：无第三方库、无 CDN、无外网请求
-   仅访问同源 /api/*
-   ============================================================ */
+
+
 (function () {
   'use strict';
 
-  /* ---------------- 常量 ---------------- */
   var THEME_KEY = 'dst-i18n-theme';
 
   var TARGET_LANGS = [
@@ -25,7 +21,6 @@
   var ROW_LIMIT_STEP = 300;
   var SCAN_CANCEL_GRACE_MS = 8000;
 
-  /* ---------------- 全局状态 ---------------- */
   var state = {
     theme: 'dark',
     page: 'mods',
@@ -50,7 +45,6 @@
 
   var docCache = {};
 
-  /* ---------------- 基础工具 ---------------- */
   function $(sel, root) { return (root || document).querySelector(sel); }
   function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
 
@@ -101,7 +95,6 @@
     return Object.prototype.hasOwnProperty.call(obj, key);
   }
 
-  /* ---------------- HTTP ---------------- */
   function ApiError(message, status) {
     this.name = 'ApiError';
     this.message = message || '请求失败';
@@ -135,7 +128,7 @@
           var text = await res.text();
           if (text) message = text.slice(0, 300);
         }
-      } catch (err2) { /* 保留状态码信息 */ }
+      } catch (err2) {   }
       var apiErr = new ApiError(message, res.status);
       apiErr.body = errorBody;
       throw apiErr;
@@ -155,7 +148,7 @@
   function fileNameFromDisposition(header, fallback) {
     if (!header) return fallback;
     var m = /filename\*=UTF-8''([^;]+)/i.exec(header);
-    if (m) { try { return decodeURIComponent(m[1].trim()); } catch (e) { /* fallthrough */ } }
+    if (m) { try { return decodeURIComponent(m[1].trim()); } catch (e) {   } }
     m = /filename="?([^";]+)"?/i.exec(header);
     if (m) return m[1].trim();
     return fallback;
@@ -172,13 +165,12 @@
     document.body.appendChild(a);
     a.click();
     setTimeout(function () {
-      try { URL.revokeObjectURL(url); } catch (e) { /* ignore */ }
+      try { URL.revokeObjectURL(url); } catch (e) {   }
       if (a.parentNode) a.parentNode.removeChild(a);
     }, 2000);
     return name;
   }
 
-  /* ---------------- 主题 ---------------- */
   function readStoredTheme() {
     try {
       var t = localStorage.getItem(THEME_KEY);
@@ -189,7 +181,7 @@
   function applyTheme(theme) {
     state.theme = theme === 'light' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', state.theme);
-    try { localStorage.setItem(THEME_KEY, state.theme); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(THEME_KEY, state.theme); } catch (e) {   }
     $$('.theme-choice').forEach(function (btn) {
       btn.classList.toggle('active', btn.getAttribute('data-theme-value') === state.theme);
     });
@@ -199,7 +191,6 @@
     applyTheme(state.theme === 'dark' ? 'light' : 'dark');
   }
 
-  /* ---------------- 提示条 ---------------- */
   var TOAST_ICONS = { success: 'check-circle', error: 'x-circle', warn: 'alert', info: 'info' };
 
   function toast(message, type, duration) {
@@ -222,13 +213,12 @@
     if (ttl > 0) setTimeout(close, ttl);
   }
 
-  /* ---------------- 模态框 ---------------- */
   function openModal(id) {
     var box = document.getElementById(id);
     if (!box) return;
     box.hidden = false;
     var focusable = box.querySelector('input, select, textarea, button');
-    if (focusable) setTimeout(function () { try { focusable.focus(); } catch (e) { /* ignore */ } }, 30);
+    if (focusable) setTimeout(function () { try { focusable.focus(); } catch (e) {   } }, 30);
   }
 
   function closeModal(id) {
@@ -240,7 +230,7 @@
     var open = $$('.overlay:not([hidden])');
     if (!open.length) return false;
     var top = open[open.length - 1];
-    // 解析进行中时不允许关闭进度弹窗（必须先取消解析）
+
     if (top.id === 'overlay-scan' && isScanning()) {
       toast('正在解析中，请先取消当前解析再重新选择', 'warn');
       return false;
@@ -266,7 +256,6 @@
     });
   }
 
-  /* ---------------- 导航 ---------------- */
   function showPage(name, navName) {
     $$('.page').forEach(function (page) { page.hidden = true; });
     var target = document.getElementById('page-' + name);
@@ -280,7 +269,6 @@
     if (content) content.scrollTop = 0;
   }
 
-  /* ---------------- 工作目录 ---------------- */
   function hasZhCn(mod) {
     var files = (mod && mod.langFiles) || [];
     for (var i = 0; i < files.length; i++) if (files[i].hasZhCn) return true;
@@ -294,7 +282,7 @@
   function setWorkspace(info) {
     state.workspace = info || null;
     if (info && info.path) {
-      // 文档缓存按目录隔离，切换工作目录后必须失效
+
       docCache = {};
       if (state.doc) {
         state.doc = null;
@@ -338,8 +326,6 @@
     }
   }
 
-  /* ---------------- 异步扫描 ---------------- */
-
   var SCAN_LOCK_IDS = [
     'btn-pick-folder', 'workspace-chip', 'btn-sidebar-pick', 'btn-sidebar-reveal', 'btn-sidebar-browse',
     'btn-empty-pick', 'btn-kubejs-pick', 'btn-ftb-pick',
@@ -350,7 +336,6 @@
     return !!(state.scan && state.scan.id);
   }
 
-  /** 扫描期间禁用所有“选择目录 / 打开文件夹 / 切换目录”按钮（真正的 disabled 属性 + 视觉态）。 */
   function setScanLock(locked) {
     state.scan.locked = !!locked;
     document.body.classList.toggle('scan-locked', !!locked);
@@ -372,7 +357,6 @@
     });
   }
 
-  /** 扫描刚开始时立刻刷新顶部栏与侧边栏的目录文本（不等扫描结束）。 */
   function applyWorkspacePath(path, name) {
     var chipPath = $('#workspace-path');
     if (chipPath) chipPath.textContent = path || '未选择工作目录';
@@ -498,7 +482,7 @@
       data = await apiJson('/api/workspace/scan/' + encodeURIComponent(id));
     } catch (err) {
       if (err.status === 404 || err.status === 405) {
-        // 服务端已无该扫描（例如重启），视为取消
+
         finishScanCancelled('解析任务已结束，请重新选择目录');
         return;
       }
@@ -608,7 +592,6 @@
     startScan(path);
   }
 
-  /** 目录不合法（400）：展示候选目录，让用户直接点选，不进入进度界面。 */
   function showInvalidWorkspace(message, candidates, attemptedPath) {
     var box = $('#ws-invalid-text');
     if (box) {
@@ -667,7 +650,7 @@
         return null;
       }
       if (err.status === 404 || err.status === 405) {
-        // 旧版后端：退回同步 /api/workspace/open
+
         return await openWorkspacePathLegacy(path);
       }
       toast('打开工作目录失败：' + err.message, 'error');
@@ -683,7 +666,6 @@
     state.scan.cancelling = false;
     state.scan.cancelDeadline = 0;
 
-    // 立刻更新顶部栏 / 侧边栏
     applyWorkspacePath(state.scan.path, state.scan.name);
     setScanLock(true);
     renderScanProgress({
@@ -768,22 +750,21 @@
         await openWorkspacePath(result.path);
         return true;
       }
-      // 系统对话框不可用（例如无桌面环境）→ 回退内置目录浏览器
+
       if (result && result.error) {
         toast('系统选择框不可用，已切换到内置目录浏览器', 'warn');
         openBrowseModal();
         return false;
       }
-      // 用户取消：保持当前状态
+
       return true;
     } catch (err) {
-      // 系统对话框不可用（无桌面环境 / 接口未实现）→ 回退内置目录浏览器
+
       openBrowseModal();
       return false;
     }
   }
 
-  /* ---------------- 空状态 ---------------- */
   function fillEmpty(id, iconName, title, desc) {
     var box = document.getElementById(id);
     if (!box) return;
@@ -795,10 +776,6 @@
     if (use) use.setAttribute('href', '#i-' + iconName);
   }
 
-
-  /* ============================================================
-     模组本地化页
-     ============================================================ */
   function statCard(iconName, tone, value, label) {
     return '<div class="stat-card">' +
       '<div class="stat-icon ' + (tone || '') + '">' + icon(iconName) + '</div>' +
@@ -1012,9 +989,6 @@
     if (empty) empty.hidden = true;
   }
 
-  /* ============================================================
-     KubeJS / FTB 列表页
-     ============================================================ */
   function renderKubejsPage() {
     var ws = state.workspace;
     var empty = $('#kubejs-empty');
@@ -1134,9 +1108,6 @@
     }).join('');
   }
 
-  /* ============================================================
-     内置目录浏览器
-     ============================================================ */
   async function openBrowseModal(startPath) {
     var initial = startPath || (state.workspace && state.workspace.path) ||
       (state.settings && state.settings.lastWorkspace) || '';
@@ -1158,7 +1129,7 @@
       return;
     }
     if (!data.path && (data.drives || []).length) {
-      // 首次打开：自动进入第一个驱动器
+
       await browseTo(data.drives[0].path);
       return;
     }
@@ -1239,9 +1210,6 @@
     info.title = target || '';
   }
 
-  /* ============================================================
-     资源包 / 覆盖包 弹窗
-     ============================================================ */
   function openPackModal(mode, options) {
     options = options || {};
     state.pack.mode = mode;
@@ -1281,7 +1249,7 @@
     if (!isPack) {
       var langSelect = $('#pack-overlay-lang');
       if (langSelect) langSelect.value = options.targetLanguage || (state.doc && state.doc.targetLanguage) || 'zh_cn';
-      // 只有从文件页发起（或只有一个候选文件）时「当前文件」才有意义
+
       var canCurrent = !!(state.pack.files && state.pack.files.length <= 1);
       var scopeSelect = $('#pack-scope');
       if (scopeSelect) {
@@ -1295,13 +1263,12 @@
       }
       var confirmLabel = $('#pack-confirm span');
       if (confirmLabel) confirmLabel.textContent = '生成并下载';
-      // 覆盖包预览文案完全由「包含范围」推导
+
       updateOverlaySummary();
     }
     openModal('overlay-pack');
   }
 
-  /** 根据「包含范围」更新弹窗预览文案。 */
   function updateOverlaySummary() {
     if (state.pack.mode === 'resourcepack') return;
     var summary = $('#pack-summary');
@@ -1319,7 +1286,6 @@
     }
   }
 
-  /** 覆盖包：当前文件 / 全部文件。全部文件时 files 传空数组，由后端导出全部。 */
   function overlayScopeFiles() {
     var scope = val('#pack-scope') || 'all';
     state.pack.scope = scope;
@@ -1405,10 +1371,6 @@
     }
   }
 
-
-  /* ============================================================
-     文档 / 键值表
-     ============================================================ */
   function descKey(desc) {
     if (!desc) return '';
     if (desc.kind === 'mod') {
@@ -1641,7 +1603,6 @@
     }
   }
 
-  /** 还原译文：把当前文档在内存里的译文全部清空，回到 doc.existing 或空。 */
   function restoreTargets(options) {
     var doc = state.doc;
     if (!doc) { toast('请先打开一个语言文件', 'warn'); return false; }
@@ -1686,13 +1647,10 @@
     area.style.left = '-9999px';
     document.body.appendChild(area);
     area.select();
-    try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+    try { document.execCommand('copy'); } catch (e) {   }
     document.body.removeChild(area);
   }
 
-  /* ============================================================
-     导出（语言 JSON）
-     ============================================================ */
   async function exportLangDoc(doc, desc) {
     if (!doc) { toast('没有可导出的文档', 'warn'); return; }
     var target = (doc.targetLanguage || 'zh_cn');
@@ -1710,9 +1668,6 @@
     }
   }
 
-  /* ============================================================
-     翻译任务
-     ============================================================ */
   function parseGlossary(text) {
     var out = {};
     var any = false;
@@ -1802,7 +1757,6 @@
     state.job.data = job;
     renderJob(job);
 
-    // 翻译结果先暂存到面板，用户点「应用结果」后才写入表格
     if (job.status === 'running' || job.status === 'waiting_user' || job.status === 'done' || job.status === 'cancelled') {
       stageJobResults(job);
     }
@@ -1829,7 +1783,6 @@
     });
   }
 
-  /** 翻译结果先暂存，用户点「应用结果」后才写入文档。 */
   function stageJobResults(job) {
     var docId = job.documentId || state.job.docId;
     if (!docId) return;
@@ -1970,7 +1923,6 @@
     }
   }
 
-  /* ---------------- LLM 提问 ---------------- */
   function pendingQuestions(job) {
     return (job.questions || []).filter(function (q) { return q.status === 'pending'; });
   }
@@ -2039,9 +1991,6 @@
     }
   }
 
-  /* ============================================================
-     设置页
-     ============================================================ */
   function defaultSettings() {
     return {
       llmBaseUrl: 'https://api.deepseek.com/v1',
@@ -2117,7 +2066,6 @@
     themeChoices.forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-theme-value') === state.theme); });
   }
 
-  /** 模型候选来自 SettingsDto.suggestedModels，允许手填任意模型名。 */
   function renderModelOptions(s) {
     var host = $('#llm-model-options');
     if (!host) return;
@@ -2261,12 +2209,8 @@
     }
   }
 
-
-  /* ============================================================
-     事件绑定
-     ============================================================ */
   function bindEvents() {
-    /* 导航 */
+
     $$('.nav-item').forEach(function (item) {
       item.addEventListener('click', function () {
         var page = item.getAttribute('data-page');
@@ -2276,7 +2220,6 @@
       });
     });
 
-    /* 顶部栏 */
     var themeBtn = $('#btn-theme');
     if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
     var settingsBtn = $('#btn-goto-settings');
@@ -2295,7 +2238,6 @@
     var browseBtn = $('#btn-sidebar-browse');
     if (browseBtn) browseBtn.addEventListener('click', function () { openBrowseModal(); });
 
-    /* 空状态按钮 */
     var emptyPick = $('#btn-empty-pick');
     if (emptyPick) emptyPick.addEventListener('click', function () { pickWorkspaceFolder(); });
     var kubejsPick = $('#btn-kubejs-pick');
@@ -2303,7 +2245,6 @@
     var ftbPick = $('#btn-ftb-pick');
     if (ftbPick) ftbPick.addEventListener('click', function () { pickWorkspaceFolder(); });
 
-    /* 刷新 */
     var modsRefresh = $('#btn-mods-refresh');
     if (modsRefresh) modsRefresh.addEventListener('click', refreshWorkspace);
     var kubejsRefresh = $('#btn-kubejs-refresh');
@@ -2311,7 +2252,6 @@
     var ftbRefresh = $('#btn-ftb-refresh');
     if (ftbRefresh) ftbRefresh.addEventListener('click', refreshWorkspace);
 
-    /* 模组页搜索 */
     var modsSearch = $('#mods-search');
     if (modsSearch) modsSearch.addEventListener('input', debounce(function () {
       state.modsFilter.q = modsSearch.value;
@@ -2323,7 +2263,6 @@
       renderModGrid((state.workspace && state.workspace.mods && state.workspace.mods.mods) || []);
     });
 
-    /* 模组卡片 / 语言文件 */
     var grid = $('#mod-grid');
     if (grid) {
       grid.addEventListener('click', function (ev) {
@@ -2352,7 +2291,6 @@
     var modBack = $('#btn-mod-back');
     if (modBack) modBack.addEventListener('click', backToModList);
 
-    /* KubeJS / FTB 列表 */
     bindLangList('#kubejs-files', 'kubejs');
     bindLangList('#ftb-files', 'ftb');
 
@@ -2376,7 +2314,6 @@
     var ftbOverlay = $('#btn-ftb-overlay');
     if (ftbOverlay) ftbOverlay.addEventListener('click', function () { openListOverlay('ftb'); });
 
-    /* 目录浏览器 */
     var browseList = $('#browse-list');
     if (browseList) {
       browseList.addEventListener('click', function (ev) {
@@ -2417,7 +2354,6 @@
       if (chip) browseTo(chip.getAttribute('data-suggest'));
     });
 
-    /* 导出文件选择弹窗 */
     var pickList = $('#pick-file-list');
     if (pickList) {
       pickList.addEventListener('click', function (ev) {
@@ -2436,7 +2372,6 @@
     var pickConfirm = $('#pick-file-confirm');
     if (pickConfirm) pickConfirm.addEventListener('click', confirmPickFile);
 
-    /* 解析进度弹窗 */
     var scanCancel = $('#btn-scan-cancel');
     if (scanCancel) scanCancel.addEventListener('click', cancelScan);
     var scanRetry = $('#btn-scan-retry');
@@ -2455,7 +2390,7 @@
       scanOverlay.addEventListener('click', function (ev) {
         if (ev.target !== scanOverlay) return;
         if (isScanning()) {
-          // 遮罩层挡住页面按钮，用户仍试图操作时给出明确提示
+
           toast('正在解析中，请先取消当前解析再重新选择', 'warn');
           return;
         }
@@ -2463,7 +2398,6 @@
       });
     }
 
-    /* 目录不合法弹窗：候选目录点选 */
     var invalidHost = $('#ws-invalid-candidates');
     if (invalidHost) {
       invalidHost.addEventListener('click', function (ev) {
@@ -2479,18 +2413,15 @@
       openBrowseModal();
     });
 
-    /* 覆盖包弹窗：范围切换 */
     var packScope = $('#pack-scope');
     if (packScope) packScope.addEventListener('change', function () {
       state.pack.scope = packScope.value;
       updateOverlaySummary();
     });
 
-    /* 资源包弹窗 */
     var packConfirm = $('#pack-confirm');
     if (packConfirm) packConfirm.addEventListener('click', submitPackModal);
 
-    /* 通用关闭 */
     document.addEventListener('click', function (ev) {
       var closer = ev.target.closest('[data-close]');
       if (closer) { closeModal(closer.getAttribute('data-close')); return; }
@@ -2506,7 +2437,6 @@
       if (ev.key === 'Escape') closeTopModal();
     });
 
-    /* 文件页 */
     var fileBack = $('#btn-file-back');
     if (fileBack) fileBack.addEventListener('click', function () {
       var kind = state.currentDesc ? state.currentDesc.kind : 'mods';
@@ -2517,7 +2447,6 @@
     var fileExportPack = $('#btn-file-export-pack');
     if (fileExportPack) fileExportPack.addEventListener('click', function () { openFilePack(); });
 
-    /* 翻译工具条 */
     $$('#seg-mode .seg-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         state.translateMode = btn.getAttribute('data-value');
@@ -2541,7 +2470,6 @@
     var jobClose = $('#btn-job-close');
     if (jobClose) jobClose.addEventListener('click', function () { setJobPanelVisible(false); });
 
-    /* 提问弹窗 */
     var qList = $('#questions-list');
     if (qList) {
       qList.addEventListener('click', function (ev) {
@@ -2559,7 +2487,6 @@
     var qSkip = $('#questions-skip');
     if (qSkip) qSkip.addEventListener('click', function () { closeModal('overlay-questions'); });
 
-    /* 键值表 */
     var kvSearch = $('#kv-search');
     if (kvSearch) kvSearch.addEventListener('input', debounce(function () {
       state.kv.q = kvSearch.value;
@@ -2642,7 +2569,6 @@
       copyText(JSON.stringify(obj, null, 2)).then(function () { toast('已复制 ' + count + ' 条译文（JSON）', 'success'); });
     });
 
-    /* 一键还原 */
     var restoreBtn = $('#btn-restore-targets');
     if (restoreBtn) restoreBtn.addEventListener('click', function () {
       var doc = state.doc;
@@ -2662,7 +2588,6 @@
         .then(function (ok) { if (ok) restoreTargets(); });
     });
 
-    /* 设置页 */
     var saveBtn = $('#btn-settings-save');
     if (saveBtn) saveBtn.addEventListener('click', saveSettings);
     var reloadBtn = $('#btn-settings-reload');
@@ -2793,9 +2718,6 @@
     }
   }
 
-  /* ============================================================
-     启动
-     ============================================================ */
   async function init() {
     applyTheme(readStoredTheme());
     bindEvents();
@@ -2808,7 +2730,6 @@
       ws = null;
     }
 
-    // 首次加载时若后端仍在扫描，直接接上现有 scanId 继续显示进度
     if (ws && ws.scanning && ws.scanId) {
       state.scan.id = ws.scanId;
       state.scan.path = ws.path || '';
@@ -2824,7 +2745,7 @@
       var last = state.settings && state.settings.lastWorkspace;
       if (last) {
         try { ws = await startScan(last); } catch (err2) { ws = null; }
-        // startScan 只返回启动信息，完整数据在扫描完成后拉取
+
         if (!isScanning()) {
           try { ws = await apiJson('/api/workspace'); } catch (err3) { ws = null; }
         } else {
@@ -2834,14 +2755,13 @@
     }
     setWorkspace(ws && ws.path ? ws : null);
 
-    /* 健康检查（仅本地，用于确认后端在线） */
     try {
       var health = await apiJson('/api/health');
       if (health && health.version) {
         var versionNode = $('.sidebar-version');
         if (versionNode) versionNode.textContent = 'v' + health.version + ' · 离线运行';
       }
-    } catch (err3) { /* ignore */ }
+    } catch (err3) {   }
   }
 
   if (document.readyState === 'loading') {
@@ -2850,7 +2770,6 @@
     init();
   }
 
-  // 仅供自动化测试（无头浏览器）驱动的少量入口；不影响正常使用。
   window.__dstTest = {
     startScan: startScan,
     openWorkspacePath: openWorkspacePath,

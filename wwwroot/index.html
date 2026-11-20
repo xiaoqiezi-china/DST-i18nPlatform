@@ -100,6 +100,15 @@
           <span class="nav-label">FTB Quests</span>
           <span class="nav-badge" id="nav-badge-ftb" hidden></span>
         </button>
+        <button class="nav-item" data-page="map">
+          <svg class="icon" viewBox="0 0 24 24"><use href="#i-globe"/></svg>
+          <span class="nav-label">地图本地化</span>
+          <span class="nav-badge" id="nav-badge-map" hidden></span>
+        </button>
+        <button class="nav-item" data-page="resourcepack">
+          <svg class="icon" viewBox="0 0 24 24"><use href="#i-archive"/></svg>
+          <span class="nav-label">材质包汉化</span>
+        </button>
         <div class="nav-sep"></div>
         <button class="nav-item" data-page="settings">
           <svg class="icon" viewBox="0 0 24 24"><use href="#i-settings"/></svg>
@@ -114,10 +123,9 @@
           <div class="mini-card-actions">
             <button class="mini-card-btn" id="btn-sidebar-pick">选择目录</button>
             <button class="mini-card-btn" id="btn-sidebar-reveal" title="在资源管理器中打开">打开文件夹</button>
-            <button class="mini-card-btn" id="btn-sidebar-browse" title="使用内置目录浏览器">浏览目录…</button>
           </div>
         </div>
-        <div class="sidebar-version">v1.1.0 · 离线运行</div>
+        <div class="sidebar-version">v1.1.4 · 离线运行</div>
       </div>
     </aside>
 
@@ -249,6 +257,211 @@
           </div>
           <div class="file-list" id="ftb-files"></div>
           <div class="list-empty" id="ftb-list-empty" hidden>没有匹配的语言文件</div>
+        </div>
+      </section>
+
+      <section class="page" id="page-map" hidden>
+        <div class="page-head">
+          <div class="page-head-text">
+            <h1 id="map-page-title">地图本地化</h1>
+            <p class="page-sub" id="map-page-sub">扫描世界存档、数据包与资源包，提取地图内的语言文件、函数指令、告示牌与实体文本</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn" id="btn-map-reveal">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-folder-open"/></svg><span id="btn-map-reveal-label">打开地图文件夹</span>
+            </button>
+            <button class="btn" id="btn-map-rescan">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-refresh"/></svg><span>重新扫描</span>
+            </button>
+            <button class="btn btn-primary" id="btn-map-open">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-globe"/></svg><span id="btn-map-open-label">选择地图目录</span>
+            </button>
+            <button class="btn" id="btn-map-open-dir" hidden>
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-folder-open"/></svg><span>选择材质包文件夹</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="empty-state" id="map-empty" hidden>
+          <div class="empty-illustration">
+            <svg class="icon" viewBox="0 0 24 24"><use href="#i-globe"/></svg>
+          </div>
+          <h2 id="map-empty-title">还没有选择地图</h2>
+          <p id="map-empty-desc">选择地图存档目录（包含 <code>level.dat</code>、<code>region</code> 或 <code>datapacks</code>），或直接选择数据包/资源包目录。</p>
+          <button class="btn btn-primary btn-lg" id="btn-map-empty-open">
+            <svg class="icon" viewBox="0 0 24 24"><use href="#i-folder-open"/></svg><span id="btn-map-empty-open-label">选择地图目录</span>
+          </button>
+          <button class="btn btn-lg" id="btn-map-empty-open-dir" hidden>
+            <svg class="icon" viewBox="0 0 24 24"><use href="#i-folder-open"/></svg><span>选择材质包文件夹</span>
+          </button>
+        </div>
+
+        <div class="map-scan-panel card" id="map-scan-panel" hidden>
+          <div class="map-scan-head">
+            <span class="job-dot running" id="map-scan-dot"></span>
+            <div>
+              <strong id="map-scan-title">正在扫描地图…</strong>
+              <span class="map-scan-detail" id="map-scan-detail">准备中</span>
+            </div>
+            <span class="spacer"></span>
+            <span class="map-scan-percent" id="map-scan-percent">0%</span>
+            <button class="btn btn-sm btn-danger-ghost" id="btn-map-scan-cancel">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-x-circle"/></svg><span>取消扫描</span>
+            </button>
+          </div>
+          <div class="progress"><div class="progress-fill" id="map-scan-progress-fill" style="width:0%"></div></div>
+          <div class="map-scan-meta" id="map-scan-meta"></div>
+        </div>
+
+        <div id="map-body" hidden>
+          <div class="stat-row" id="map-stats"></div>
+
+          <div class="toolbar map-toolbar">
+            <div class="search-field">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-search"/></svg>
+              <input type="text" id="map-search" placeholder="搜索路径 / 文件名 / 键 / 原文 / 译文…" autocomplete="off" />
+            </div>
+            <select class="select" id="map-source-filter" title="按来源筛选">
+              <option value="all">全部来源</option>
+              <option value="lang">语言文件</option>
+              <option value="resourcepack">材质包</option>
+              <option value="function">函数</option>
+              <option value="structure">结构</option>
+              <option value="sign">告示牌</option>
+              <option value="command_block">命令方块</option>
+              <option value="entity">实体</option>
+              <option value="item">物品</option>
+              <option value="book">成书</option>
+              <option value="nbt">NBT</option>
+              <option value="text_display">文本展示实体</option>
+            </select>
+            <label class="switch">
+              <input type="checkbox" id="map-only-untranslated" />
+              <span class="switch-track"></span>
+              <span>只看未翻译</span>
+            </label>
+            <span class="spacer"></span>
+            <label class="checkbox">
+              <input type="checkbox" id="map-select-all" />
+              <span>全选筛选结果</span>
+            </label>
+            <button class="btn btn-sm" id="btn-map-copy-selected">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-copy"/></svg><span>复制选中</span>
+            </button>
+            <button class="btn btn-sm" id="btn-map-copy-all">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-copy"/></svg><span>复制全部译文</span>
+            </button>
+          </div>
+
+          <div class="translate-bar card" id="map-translate-bar">
+            <div class="tb-field">
+              <label class="tb-label">翻译模式</label>
+              <div class="segmented" id="map-seg-mode" role="tablist">
+                <button class="seg-btn active" data-value="llm" role="tab">
+                  <svg class="icon" viewBox="0 0 24 24"><use href="#i-sparkles"/></svg><span>LLM</span>
+                </button>
+                <button class="seg-btn" data-value="machine" role="tab">
+                  <svg class="icon" viewBox="0 0 24 24"><use href="#i-globe"/></svg><span>机翻</span>
+                </button>
+              </div>
+            </div>
+            <div class="tb-field">
+              <label class="tb-label" for="map-target-lang">目标语言</label>
+              <select class="select" id="map-target-lang">
+                <option value="zh_cn">简体中文（zh_cn）</option>
+                <option value="zh_tw">繁體中文（zh_tw）</option>
+                <option value="ja_jp">日本語（ja_jp）</option>
+                <option value="ko_kr">한국어（ko_kr）</option>
+                <option value="ru_ru">Русский（ru_ru）</option>
+              </select>
+            </div>
+            <label class="switch tb-switch">
+              <input type="checkbox" id="map-skip-existing" checked />
+              <span class="switch-track"></span>
+              <span>跳过已有译文</span>
+            </label>
+            <span class="spacer"></span>
+            <span class="hint" id="map-concurrency-hint"></span>
+            <button class="btn btn-ghost" id="btn-map-glossary-toggle">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-list"/></svg><span>术语表</span>
+            </button>
+            <button class="btn btn-primary" id="btn-map-start-translate">
+              <svg class="icon" viewBox="0 0 24 24"><use href="#i-play"/></svg><span>开始翻译</span>
+            </button>
+          </div>
+
+          <div class="glossary-panel card" id="map-glossary-panel" hidden>
+            <div class="glossary-head">
+              <div>
+                <strong>术语表</strong>
+                <span class="hint">每行一条 <code>key:value</code>，或 <code>原文=译文</code>，将作为强制术语提供给翻译引擎</span>
+              </div>
+              <button class="btn btn-icon btn-sm" id="btn-map-glossary-close" title="收起">
+                <svg class="icon" viewBox="0 0 24 24"><use href="#i-close"/></svg>
+              </button>
+            </div>
+            <textarea id="map-glossary-input" class="textarea mono" rows="5" spellcheck="false"
+              placeholder="item.example.name:示例物品&#10;Redstone=红石"></textarea>
+          </div>
+
+          <div class="job-panel card" id="map-job-panel" hidden>
+            <div class="job-head">
+              <div class="job-title-wrap">
+                <span class="job-dot" id="map-job-dot"></span>
+                <strong id="map-job-title">地图翻译任务</strong>
+                <span class="job-status" id="map-job-status">准备中</span>
+              </div>
+              <div class="job-actions">
+                <button class="btn btn-sm" id="btn-map-job-apply" disabled>
+                  <svg class="icon" viewBox="0 0 24 24"><use href="#i-check"/></svg><span>应用结果</span>
+                </button>
+                <button class="btn btn-sm btn-danger-ghost" id="btn-map-job-discard" disabled>
+                  <svg class="icon" viewBox="0 0 24 24"><use href="#i-trash"/></svg><span>丢弃结果</span>
+                </button>
+                <button class="btn btn-sm btn-danger-ghost" id="btn-map-job-restore-all" disabled>
+                  <svg class="icon" viewBox="0 0 24 24"><use href="#i-refresh"/></svg><span>全部还原</span>
+                </button>
+                <button class="btn btn-sm btn-danger-ghost" id="btn-map-job-cancel">
+                  <svg class="icon" viewBox="0 0 24 24"><use href="#i-x-circle"/></svg><span>取消任务</span>
+                </button>
+                <button class="btn btn-icon btn-sm" id="btn-map-job-close" title="关闭面板">
+                  <svg class="icon" viewBox="0 0 24 24"><use href="#i-close"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="progress"><div class="progress-fill" id="map-job-progress-fill" style="width:0%"></div></div>
+            <div class="job-meta">
+              <span id="map-job-count">0 / 0</span>
+              <span class="spacer"></span>
+              <span id="map-job-detail"></span>
+            </div>
+          </div>
+
+          <div class="card table-card">
+            <div class="table-scroll">
+              <table class="kv-table map-table">
+                <thead>
+                  <tr>
+                    <th class="col-check"></th>
+                    <th class="map-col-path">路径</th>
+                    <th class="map-col-file">文件名</th>
+                    <th class="map-col-source">来源</th>
+                    <th class="map-col-key">键 / text</th>
+                    <th class="map-col-original">原文</th>
+                    <th class="map-col-target">译文</th>
+                    <th class="col-status">状态</th>
+                  </tr>
+                </thead>
+                <tbody id="map-tbody"></tbody>
+              </table>
+              <div class="table-empty" id="map-rows-empty" hidden>没有匹配的文本条目</div>
+            </div>
+            <div class="table-foot">
+              <span id="map-stats-line">0 条</span>
+              <span class="spacer"></span>
+              <span class="hint">单击路径可在资源管理器中定位文件；悬浮可查看完整路径与 NBT 位置</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -465,6 +678,10 @@
                 <input type="number" id="set-batch" class="input" min="1" max="200" step="1" value="20" />
               </div>
               <div class="field">
+                <label for="set-concurrency">并发批次</label>
+                <input type="number" id="set-concurrency" class="input" min="1" max="8" step="1" value="4" />
+              </div>
+              <div class="field">
                 <label for="set-timeout">请求超时（秒）</label>
                 <input type="number" id="set-timeout" class="input" min="5" max="600" step="5" value="60" />
               </div>
@@ -600,41 +817,6 @@
       </section>
 
     </main>
-  </div>
-</div>
-
-<div class="overlay" id="overlay-browse" hidden>
-  <div class="modal modal-browse" role="dialog" aria-modal="true" aria-labelledby="browse-title">
-    <header class="modal-head">
-      <h2 id="browse-title">选择工作目录</h2>
-      <button class="btn btn-icon btn-sm" data-close="overlay-browse" title="关闭">
-        <svg class="icon" viewBox="0 0 24 24"><use href="#i-close"/></svg>
-      </button>
-    </header>
-    <div class="modal-body">
-      <div class="browse-bar">
-        <select class="select select-drive" id="browse-drive"></select>
-        <button class="btn btn-icon btn-sm" id="browse-up" title="上一级">
-          <svg class="icon" viewBox="0 0 24 24"><use href="#i-arrow-up"/></svg>
-        </button>
-        <div class="browse-path mono" id="browse-path">—</div>
-        <button class="btn btn-icon btn-sm" id="browse-refresh" title="刷新">
-          <svg class="icon" viewBox="0 0 24 24"><use href="#i-refresh"/></svg>
-        </button>
-      </div>
-      <div class="browse-list" id="browse-list"></div>
-      <div class="browse-suggest" id="browse-suggest" hidden></div>
-      <div class="browse-hint">
-        <svg class="icon" viewBox="0 0 24 24"><use href="#i-info"/></svg>
-        <span>双击文件夹进入；带标记的目录包含对应内容，推荐选择整合包根目录。</span>
-      </div>
-    </div>
-    <footer class="modal-foot">
-      <span class="modal-foot-info" id="browse-selected"></span>
-      <span class="spacer"></span>
-      <button class="btn" data-close="overlay-browse">取消</button>
-      <button class="btn btn-primary" id="browse-confirm">使用此目录</button>
-    </footer>
   </div>
 </div>
 
@@ -803,7 +985,7 @@
     </div>
     <footer class="modal-foot">
       <button class="btn" id="btn-ws-invalid-browse">
-        <svg class="icon" viewBox="0 0 24 24"><use href="#i-folder"/></svg><span>浏览目录…</span>
+        <svg class="icon" viewBox="0 0 24 24"><use href="#i-folder"/></svg><span>重新选择目录…</span>
       </button>
       <span class="spacer"></span>
       <button class="btn" data-close="overlay-ws-invalid">取消</button>

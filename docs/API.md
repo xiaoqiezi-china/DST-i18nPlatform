@@ -38,11 +38,11 @@ interface SettingsDto {
 | --- | --- | --- |
 | GET | /api/workspace?path= | 扫描并返回 WorkspaceInfo。path 省略时用当前已打开目录 |
 | POST | /api/workspace/open | { path } 打开并扫描，返回 WorkspaceInfo |
-| GET | /api/workspace/browse?path= | 网页内目录浏览器 |
-| POST | /api/workspace/pick | 打开系统原生文件夹选择框，返回 { path: string|null } |
+| POST | /api/workspace/pick | 打开 Windows 原生文件夹选择框，body `{initial, description}`，返回 `{path, cancelled}` |
+| POST | /api/workspace/pick-file | 打开 Windows 原生文件选择框，body `{initial, description, filter}`，返回 `{path, cancelled}` |
 | POST | /api/workspace/refresh | 重新扫描当前目录 |
 
-browse 返回：{ path, parent, isRoot, dirs:[{name,path,hasMods,hasKubejs,hasConfig,hasMinecraft}], drives:[{name,path}], suggestions:[{label,path,reason}] }
+`/api/workspace/browse` 已移除。原生选择接口同一时间只允许打开一个对话框；重复请求返回 409。
 
 ~~~ts
 interface WorkspaceInfo {

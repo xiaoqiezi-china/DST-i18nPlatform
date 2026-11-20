@@ -3,12 +3,12 @@
 > 一个离线优先、双击即用的 Minecraft 整合包汉化工具：扫描整合包里的模组、KubeJS 与 FTB Quests 语言文件，
 > 借助 DeepSeek（或任意 OpenAI 兼容接口）/ 机器翻译批量生成 `zh_cn` 译文，并一键打包成资源包或覆盖包。
 
-- 自包含发布（普通多文件打包，**不做单文件、不做自解压**）：目标机器无需安装 .NET 运行时，启动时也不会往临时目录解压；
-- 前端界面完全内嵌在程序集里，**没有任何第三方库、CDN 或外网请求**，断网也能打开界面；
+- 单文件自包含发布（PyInstaller onefile，约 **9.2 MB**）：目标机器无需安装 Python、.NET 或任何运行时，双击即用；
+- 前端界面完全内嵌在 exe 里，**没有任何第三方库、CDN 或外网请求**，断网也能打开界面；
 - 服务只监听 `127.0.0.1`，不会暴露到局域网；
 - 只在你点击「开始翻译」时才访问你配置的翻译接口，其余操作全部本地完成。
 
-> 当前版本：**v1.1.0**（新增异步扫描进度 / 可编辑提示词 / 一键还原 / 覆盖包免版本号）
+> 当前版本：**v1.1.4**（新增地图本地化、材质包汉化、原生文件夹/文件选择与高并发翻译）
 
 ![主界面](docs/screenshots/01-home.png)
 
@@ -112,35 +112,37 @@
 
 环境要求：
 
-- .NET SDK **10.0** 或更高（本仓库使用 `net10.0` 目标框架）；
-- Windows x64（发布运行时标识符为 `win-x64`）。
+- Python **3.10+**（建议 3.12 / 3.13）；
+- Windows x64（PyInstaller 只能产出当前平台的 exe）；
+- 打包依赖 **PyInstaller**（见 `python/requirements.txt`）。
 
-一条命令发布到 `dist/`：
+首次构建：
 
 ```powershell
-# PowerShell
-.\build.ps1
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r python\requirements.txt
 ```
 
-```bash
-# git-bash / WSL / Linux 上的 bash（产物仍是 win-x64 exe）
-./build.sh
+一条命令产出单文件 exe（`dist-python\DST-MC-I18n-Tool.exe`）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File python\build.ps1 -Python .\.venv\Scripts\python.exe
 ```
 
-两个脚本等价于：
+构建脚本等价于：
 
-```bash
-dotnet publish DstMcI18nTool.csproj -c Release -r win-x64 -o dist \
-    -p:SelfContained=true -p:PublishSingleFile=false
+```powershell
+python -m PyInstaller --onefile --console --name "DST-MC-I18n-Tool" `
+    --add-data "wwwroot;wwwroot" --distpath dist-python python\main.py
 ```
 
-发布完成后把 **整个 `dist/` 目录**一起分发（约 334 个文件、107 MB），双击其中的 `DST-MC-I18n-Tool.exe` 即可运行。
-前端已作为 EmbeddedResource 打进程序集，所以 `dist` 里不需要带 `wwwroot`。
+发布产物只有 **一个 exe（约 9.2 MB）**，直接分发即可，不需要旁边再带 dll 或 `wwwroot`。
+前端已作为数据文件打进 exe；程序启动时由 PyInstaller 引导器解压到系统临时目录。
 
-> ⚠️ 只拷 exe 是**不能运行**的——依赖 dll 都在同目录。打包分发时请压缩整个 `dist` 目录。
-构建脚本会先清空 `dist/`，避免残留旧文件。
+> 旧的 .NET 实现（`src/`、`DstMcI18nTool.csproj`、根目录 `build.ps1` / `build.sh`）仍保留在仓库里作参考，
+> 但发布流程已改为 Python 版，不再产出 106 MB 的多文件目录。
 
-> 只想本机调试时，可以直接 `dotnet run --project DstMcI18nTool.csproj -- --path <整合包> --no-browser`。
+> 本机调试可以直接 `python python\main.py --path <整合包> --no-browser`，改完前端刷新页面即可生效。
 
 ---
 
@@ -171,6 +173,8 @@ DST-MC-I18n-Tool.exe [--path <minecraft-dir>] [--port <port>] [--no-browser]
 | 模组本地化 | mod 卡片列表 → 选择语言文件 → 键值表 → 翻译 / 导出资源包 |
 | KubeJS | 按命名空间列出 KubeJS 语言文件 → 键值表 → 导出 `zh_cn.json` / 覆盖包 |
 | FTB Quests | 列出 SNBT 语言文件 → 键值表 → 导出 `zh_cn.json` / 覆盖包 |
+| 地图本地化 | 扫描存档、数据包与 `resources.zip`，提取语言文件、函数、告示牌、实体、物品、成书等文本 |
+| 材质包汉化 | 选择材质包 `.zip` 或文件夹，按 `assets/<namespace>/lang/*.json` 提取并翻译 |
 | 设置 | 翻译接口、模型、**提示词**、术语、目标语言、批量大小、超时等 |
 
 典型流程：打开目录（异步解析，可取消）→ 选文件 → （可选）填术语表 → 开始翻译 → 校对 / 一键还原 → 导出资源包 / 覆盖包。
@@ -227,49 +231,48 @@ DST-MC-I18n-Tool.exe [--path <minecraft-dir>] [--port <port>] [--no-browser]
 
 ```
 app/i18ntool/
-├── DstMcI18nTool.csproj      # 项目文件（net10.0, 自包含多文件发布, 前端内嵌）
-├── build.ps1                 # 一条命令发布到 dist/（PowerShell）
-├── build.sh                  # 一条命令发布到 dist/（bash）
-├── README.md                 # 本文档
-├── .gitignore
-├── docs/
-│   └── API.md                # 前后端 HTTP API 契约
-├── src/
-│   ├── Program.cs            # 应用入口（Kestrel 启动 / 参数 / 随机端口）
-│   ├── Api.cs                # 全部 HTTP 接口与静态资源路由
-│   ├── Assets.cs             # 内嵌前端资源加载 + 系统文件夹选择框
-│   ├── Core/
-│   │   ├── AppOptions.cs     # 命令行参数解析与 --help 文本
-│   │   ├── Dtos.cs           # 接口请求 / 响应 DTO
-│   │   ├── JarReader.cs      # 不解压读取 jar 内条目与 mod 元数据
-│   │   ├── JsonUtil.cs       # JSON 解析、扁平化、写回
-│   │   ├── Models.cs         # 全部领域模型
-│   │   ├── PromptDefaults.cs # 内置翻译提示词与占位符渲染
-│   │   ├── SettingsStore.cs  # 全局设置持久化（%APPDATA%）
-│   │   ├── Snbt.cs           # 最小 SNBT 读写（FTB Quests）
-│   │   └── WorkspaceScanner.cs # 整合包扫描
-│   └── Services/
-│       ├── DocumentService.cs   # 语言文件 -> 键值表
-│       ├── Exporters.cs         # 资源包 / 覆盖包 / json 生成
-│       ├── ExportService.cs     # 导出编排：合并完整语言表、写回磁盘
-│       ├── LlmClient.cs         # OpenAI 兼容接口客户端
-│       ├── MachineTranslator.cs # 机器翻译
-│       ├── Placeholders.cs      # 占位符保护
-│       ├── TranslationEngine.cs # 批量翻译任务调度 + 术语提问
-│       └── WorkspaceSession.cs  # 当前打开的目录
-├── wwwroot/                  # 前端（纯原生 HTML/CSS/JS，构建时内嵌进 exe）
+├── python/                   # 当前发布实现（Python 标准库 + PyInstaller）
+│   ├── main.py               # 应用入口（参数 / 随机端口 / 启动扫描 / 打开浏览器）
+│   ├── build.ps1             # 一条命令打包成单文件 exe
+│   ├── requirements.txt      # 构建依赖（PyInstaller）
+│   └── dst_i18n/
+│       ├── api.py            # 全部 HTTP 路由与静态资源
+│       ├── server.py         # ThreadingHTTPServer（仅 127.0.0.1）
+│       ├── session.py        # 工作目录会话 / 异步扫描 / 浏览
+│       ├── scanner.py        # 整合包扫描（mods / KubeJS / FTB）
+│       ├── jarreader.py      # 不解压读取 jar 条目与 mod 元数据
+│       ├── documents.py      # 语言文件 -> 键值表
+│       ├── exporters.py      # 资源包 / 覆盖包 / json 生成
+│       ├── exports.py        # 导出编排：合并完整语言表、写回磁盘
+│       ├── placeholders.py   # 占位符保护
+│       ├── prompts.py        # 内置提示词与模板渲染
+│       ├── llm.py            # OpenAI 兼容接口客户端
+│       ├── mt.py             # 机器翻译（Google / Bing / custom）
+│       ├── translate.py      # 批量翻译任务调度 + 术语提问
+│       ├── settings.py       # 设置持久化（%APPDATA%\DstMcI18nTool）
+│       ├── assets.py         # 内嵌 wwwroot 加载
+│       ├── jsonutil.py       # 容忍注释/尾逗号的 JSON 读写
+│       └── snbt.py           # 最小 SNBT 读写（FTB Quests）
+├── wwwroot/                  # 前端（纯原生 HTML/CSS/JS，打包时内嵌进 exe）
 │   ├── index.html
 │   ├── style.css
 │   └── app.js
-└── tests/
-    ├── make_fixtures.py      # 生成假整合包测试夹具（可重复执行）
-    ├── e2e.py                # 端到端验收脚本（标准库 urllib，输出 PASS/FAIL）
-    ├── fixtures/instance/    # 生成出来的测试用假 .minecraft 目录
-    └── ExportHarness/        # 导出服务的独立自测控制台工程
+├── docs/
+│   └── API.md                # 前后端 HTTP API 契约
+├── tests/
+│   ├── make_fixtures.py      # 生成假整合包测试夹具（可重复执行）
+│   ├── e2e.py                # 端到端验收脚本（标准库 urllib，输出 PASS/FAIL）
+│   ├── fixtures/instance/    # 生成出来的测试用假 .minecraft 目录
+│   └── ExportHarness/        # 旧版导出服务的独立自测工程
+├── src/                      # 旧版 .NET 实现（保留作参考，不再用于发布）
+├── DstMcI18nTool.csproj      # 旧版 .NET 项目文件
+├── build.ps1 / build.sh      # 旧版 .NET 发布脚本
+└── README.md                 # 本文档
 ```
 
-运行时会在 exe 同级目录或 `%APPDATA%\DstMcI18nTool\` 下产生设置文件；
-除此之外不会写系统目录。
+运行时设置固定写在 `%APPDATA%\DstMcI18nTool\settings.json`；除此之外不会写系统目录。
+
+> 地图与材质包文本解析引擎见 [`docs/MAP_SCAN.md`](docs/MAP_SCAN.md)，命令行入口为 `python python\map_scan.py <地图目录>`。
 
 ---
 
@@ -288,8 +291,8 @@ python tests/make_fixtures.py
 ### 端到端验收
 
 ```bash
-python tests/e2e.py
-python tests/e2e.py --exe "D:/build/DST-MC-I18n-Tool.exe" --verbose
+python tests/e2e.py --exe "dist-python/DST-MC-I18n-Tool.exe"
+python tests/e2e.py --exe "dist-python/DST-MC-I18n-Tool.exe" --verbose
 ```
 
 脚本会用 `--path <夹具> --port <随机端口> --no-browser` 启动发布后的 exe，
@@ -297,7 +300,7 @@ python tests/e2e.py --exe "D:/build/DST-MC-I18n-Tool.exe" --verbose
 `pack.mcmeta` 的 `pack_format`、JSON 是否为 UTF-8 无 BOM）以及错误分支，
 最后关闭进程并打印 PASS / FAIL 汇总。退出码：`0` 全通过、`1` 有失败、`2` 无法开始测试。
 
-> e2e 需要先有发布产物。exe 未构建时脚本会直接提示并退出，不会自己去 `dotnet publish`。
+> e2e 需要先有发布产物。exe 未构建时脚本会直接提示并退出，不会自己去打包。
 
 ---
 
@@ -320,18 +323,18 @@ Get-NetTCPConnection -LocalPort 18080 -ErrorAction SilentlyContinue
 
 ### 杀毒软件误报 / exe 被删
 
-本程序**不是**单文件自解压包：`dist/` 里就是普通的 exe + 一堆依赖 dll，启动时不会往临时目录解压，
-因此比单文件自解压版本少了一类常见的启发式误报来源。仍被拦的话：
+本程序是 PyInstaller 单文件包：启动时会把内置的 Python 运行时解压到系统临时目录，再由子进程加载，
+这类行为偶尔会触发启发式误报。仍被拦的话：
 
-- 把整个 `dist/` 目录加入杀软白名单（**不要只加 exe**，依赖 dll 也要放行）；
+- 把 `DST-MC-I18n-Tool.exe` 加入杀软白名单；
 - 从官方 Release 下载并核对文件哈希；
-- 也可以自己按上面的[构建](#构建)步骤从源码编译，避免来源不明。
+- 也可以自己按上面的[构建](#构建)步骤从源码打包，避免来源不明。
 
-### 为什么不是一个 exe
+### 为什么只有一个 exe、体积多大
 
-之前版本用 `PublishSingleFile` + 自解压，会被部分杀软判定成“自解压程序”。
-现在改成普通多文件发布：程序集、运行时和依赖都平铺在 `dist/` 里，行为更透明。
-代价是分发时要带上整个目录（约 107 MB / 334 个文件），压缩后约 40 MB。
+Python 版把标准库、解释器和内嵌前端一起打进了一个 exe：**约 9.2 MB**，目标机器不需要安装 Python 或 .NET。
+旧版 .NET 自包含发布是 300 多个文件、约 106 MB，换成 Python 后分发只需要这一个文件。
+代价是每次启动会先解压到临时目录（通常一两秒），退出后临时文件由系统清理。
 
 ### 资源包版本号（pack_format）怎么选
 
@@ -376,8 +379,8 @@ API Key 无效、过期或没有余额。到「设置」里重新填写 Key 并�
 
 ### 支持 Linux / macOS 吗
 
-发布产物是 `win-x64` 自包含目录（exe + dll）。理论上改 `RuntimeIdentifier` 可以发布其他平台，
-但本项目只在 Windows 上验证过（原生文件夹选择框依赖 Windows）。
+发布产物是 Windows x64 单文件 exe。PyInstaller 不支持跨平台交叉编译，要在对应平台上各自打包；
+目录选择使用 Windows 原生文件夹/文件选择框（PowerShell STA + Win32 置顶），前端不自制目录选择器；本项目目前只在 Windows 上验证过。
 
 ---
 

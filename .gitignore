@@ -21,6 +21,8 @@ tests/__pycache__/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.venv/
+venv/
 
 # 导出服务自测工程的产物
 tests/ExportHarness/bin/

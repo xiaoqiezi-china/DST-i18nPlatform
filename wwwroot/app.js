@@ -32,10 +32,27 @@
     doc: null,
     targets: {},
     kv: { q: '', onlyUntranslated: false, selected: {}, limit: ROW_LIMIT_STEP },
+    map: {
+      scanId: null,
+      timer: null,
+      kind: 'map',
+      scanKind: null,
+      path: '',
+      name: '',
+      data: null,
+      doc: null,
+      byId: {},
+      q: '',
+      source: 'all',
+      onlyUntranslated: false,
+      selected: {},
+      limit: ROW_LIMIT_STEP,
+      cancelling: false
+    },
     translateMode: 'llm',
-    job: { id: null, timer: null, data: null, docId: null, modalShown: {}, staged: {}, stagedDocId: null },
+    mapMode: 'llm',
+    job: { id: null, timer: null, data: null, docId: null, view: 'file', modalShown: {}, staged: {}, stagedDocId: null },
     scan: { id: null, timer: null, path: '', name: '', data: null, cancelling: false, cancelDeadline: 0, locked: false },
-    browse: { path: '', parent: null, isRoot: true, selected: '', drives: [], dirs: [], suggestions: [] },
     pack: { mode: 'resourcepack', kind: null, desc: null, files: null, scope: 'all' },
     pickFile: { kind: 'kubejs', files: [], selected: '' },
     questionsJobId: null
@@ -265,6 +282,10 @@
     });
     var content = $('#content');
     if (content) content.scrollTop = 0;
+    if (name === 'map') {
+      if (state.map.doc) state.doc = state.map.doc;
+      renderMapPage();
+    }
   }
 
   function hasZhCn(mod) {
@@ -325,9 +346,9 @@
   }
 
   var SCAN_LOCK_IDS = [
-    'btn-pick-folder', 'workspace-chip', 'btn-sidebar-pick', 'btn-sidebar-reveal', 'btn-sidebar-browse',
+    'btn-pick-folder', 'workspace-chip', 'btn-sidebar-pick', 'btn-sidebar-reveal',
     'btn-empty-pick', 'btn-kubejs-pick', 'btn-ftb-pick',
-    'btn-mods-refresh', 'btn-kubejs-refresh', 'btn-ftb-refresh', 'browse-confirm'
+    'btn-mods-refresh', 'btn-kubejs-refresh', 'btn-ftb-refresh'
   ];
 
   function isScanning() {
@@ -736,31 +757,58 @@
     }
   }
 
+  async function pickNativeFolder(initial, description) {
+    try {
+      var res = await apiJson('/api/workspace/pick', {
+        method: 'POST',
+        body: {
+          initial: initial || '',
+          description: description || '选择文件夹'
+        }
+      });
+      if (res && res.error) {
+        toast('打开系统文件夹选择框失败：' + res.error, 'error');
+        return null;
+      }
+      return (res && res.path) || null;
+    } catch (err) {
+      toast('打开系统文件夹选择框失败：' + err.message, 'error');
+      return null;
+    }
+  }
+
+  async function pickNativeFile(initial, description, filter) {
+    try {
+      var res = await apiJson('/api/workspace/pick-file', {
+        method: 'POST',
+        body: {
+          initial: initial || '',
+          description: description || '选择文件',
+          filter: filter || 'Minecraft 材质包 (*.zip)|*.zip|所有文件 (*.*)|*.*'
+        }
+      });
+      if (res && res.error) {
+        toast('打开系统文件选择框失败：' + res.error, 'error');
+        return null;
+      }
+      return (res && res.path) || null;
+    } catch (err) {
+      toast('打开系统文件选择框失败：' + err.message, 'error');
+      return null;
+    }
+  }
+
   async function pickWorkspaceFolder() {
     if (isScanning()) {
       toast('正在解析中，请先取消当前解析再重新选择', 'warn');
       return false;
     }
-    toast('正在打开系统文件夹选择框…', 'info', 2400);
-    try {
-      var result = await apiJson('/api/workspace/pick', { method: 'POST' });
-      if (result && result.path) {
-        await openWorkspacePath(result.path);
-        return true;
-      }
-
-      if (result && result.error) {
-        toast('系统选择框不可用，已切换到内置目录浏览器', 'warn');
-        openBrowseModal();
-        return false;
-      }
-
-      return true;
-    } catch (err) {
-
-      openBrowseModal();
-      return false;
-    }
+    var initial = (state.workspace && state.workspace.path) ||
+      (state.settings && state.settings.lastWorkspace) || '';
+    var path = await pickNativeFolder(initial, '选择整合包或 .minecraft 目录');
+    if (!path) return false;
+    await openWorkspacePath(path);
+    return true;
   }
 
   function fillEmpty(id, iconName, title, desc) {
@@ -1104,108 +1152,6 @@
         '</div>' +
         '</div>';
     }).join('');
-  }
-
-  async function openBrowseModal(startPath) {
-    var initial = startPath || (state.workspace && state.workspace.path) ||
-      (state.settings && state.settings.lastWorkspace) || '';
-    state.browse.selected = '';
-    openModal('overlay-browse');
-    await browseTo(initial);
-  }
-
-  async function browseTo(path) {
-    var listNode = $('#browse-list');
-    if (listNode) listNode.innerHTML = '<div class="browse-item"><span class="browse-name">正在读取目录…</span></div>';
-    var url = '/api/workspace/browse' + (path ? '?path=' + encodeURIComponent(path) : '');
-    var data;
-    try {
-      data = await apiJson(url);
-    } catch (err) {
-      if (listNode) listNode.innerHTML = '<div class="browse-item"><span class="browse-name">读取失败：' + escapeHtml(err.message) + '</span></div>';
-      toast('读取目录失败：' + err.message, 'error');
-      return;
-    }
-    if (!data.path && (data.drives || []).length) {
-
-      await browseTo(data.drives[0].path);
-      return;
-    }
-    state.browse.path = data.path || '';
-    state.browse.parent = data.parent || null;
-    state.browse.isRoot = !!data.isRoot;
-    state.browse.drives = data.drives || [];
-    state.browse.dirs = data.dirs || [];
-    if (data.error) toast('读取目录时出错：' + data.error, 'warn');
-    state.browse.suggestions = data.suggestions || [];
-    state.browse.selected = '';
-
-    var pathNode = $('#browse-path');
-    if (pathNode) { pathNode.textContent = data.path || '—'; pathNode.title = data.path || ''; }
-
-    var driveSelect = $('#browse-drive');
-    if (driveSelect) {
-      var drives = state.browse.drives;
-      if (!drives.length && data.path) {
-        var rootMatch = /^([A-Za-z]:[\\/]?)/.exec(data.path);
-        if (rootMatch) drives = [{ name: rootMatch[1], path: rootMatch[1] }];
-      }
-      driveSelect.innerHTML = drives.map(function (d) {
-        var label = d.name || d.path;
-        var isCurrent = String(data.path || '').toLowerCase().indexOf(String(d.path || '').toLowerCase()) === 0;
-        return '<option value="' + escapeHtml(d.path) + '"' + (isCurrent ? ' selected' : '') + '>' + escapeHtml(label) + '</option>';
-      }).join('');
-      driveSelect.disabled = !drives.length;
-    }
-
-    var upBtn = $('#browse-up');
-    if (upBtn) upBtn.disabled = !state.browse.parent;
-
-    renderBrowseList();
-    updateBrowseFooter();
-  }
-
-  function renderBrowseList() {
-    var listNode = $('#browse-list');
-    if (!listNode) return;
-    var dirs = state.browse.dirs;
-    if (!dirs.length) {
-      listNode.innerHTML = '<div class="browse-item"><span class="browse-name">该目录下没有子文件夹</span></div>';
-      return;
-    }
-    listNode.innerHTML = dirs.map(function (d) {
-      var tags = '';
-      if (d.hasMods) tags += '<span class="badge badge-accent">mods</span>';
-      if (d.hasKubejs) tags += '<span class="badge badge-accent">kubejs</span>';
-      if (d.hasConfig) tags += '<span class="badge">config</span>';
-      if (d.hasMinecraft) tags += '<span class="badge badge-ok">.minecraft</span>';
-      return '<div class="browse-item' + (state.browse.selected === d.path ? ' selected' : '') + '" data-path="' + escapeHtml(d.path) + '">' +
-        '<span class="browse-icon">' + icon('folder') + '</span>' +
-        '<span class="browse-name">' + escapeHtml(d.name || d.path) + '</span>' +
-        '<span class="browse-tags">' + tags + '</span>' +
-        '</div>';
-    }).join('');
-
-    var suggest = state.browse.suggestions;
-    var host = $('#browse-suggest');
-    if (!host) return;
-    if (suggest.length) {
-      host.hidden = false;
-      host.innerHTML = '<span class="browse-suggest-label">推荐：</span>' + suggest.map(function (s) {
-        return '<button type="button" class="suggest-chip" data-suggest="' + escapeHtml(s.path) + '" title="' + escapeHtml(s.path + ' — ' + (s.reason || '')) + '">' + escapeHtml(shortPath(s.label || s.path)) + '</button>';
-      }).join('');
-    } else {
-      host.hidden = true;
-      host.innerHTML = '';
-    }
-  }
-
-  function updateBrowseFooter() {
-    var info = $('#browse-selected');
-    if (!info) return;
-    var target = state.browse.selected || state.browse.path;
-    info.textContent = target ? ('将使用：' + target) : '未选择目录';
-    info.title = target || '';
   }
 
   function openPackModal(mode, options) {
@@ -1603,7 +1549,7 @@
 
   function restoreTargets(options) {
     var doc = state.doc;
-    if (!doc) { toast('请先打开一个语言文件', 'warn'); return false; }
+    if (!doc) { toast('请先打开一个语言文件或地图', 'warn'); return false; }
     var existing = doc.existing || {};
     var targets = state.targets[doc.id];
     var touched = 0;
@@ -1623,8 +1569,15 @@
       });
     }
     if (state.job.stagedDocId === doc.id) state.job.staged = {};
-    renderKvTable();
-    updateKvStats();
+    if (doc.kind === 'map') {
+      renderMapTable();
+      renderMapStats();
+      updateMapStatsLine();
+      updateMapJobButtons(state.job.data);
+    } else {
+      renderKvTable();
+      updateKvStats();
+    }
     if (!(options && options.silent)) {
       toast(touched ? ('已还原 ' + fmtNumber(touched) + ' 条译文') : '没有需要还原的译文', touched ? 'success' : 'info');
     }
@@ -1694,6 +1647,7 @@
     var desc = state.currentDesc;
     if (!doc || !desc) { toast('请先打开一个语言文件', 'warn'); return; }
     if (state.job.id && state.job.timer) { toast('已有翻译任务正在运行', 'warn'); return; }
+    state.job.view = 'file';
 
     var btn = $('#btn-start-translate');
     if (btn) btn.disabled = true;
@@ -1708,6 +1662,8 @@
       body.askUser = !!(state.settings && state.settings.askUserEnabled);
       body.skipExisting = checked('#chk-skip-existing');
       body.targetLanguage = val('#sel-target-lang') || (doc.targetLanguage || 'zh_cn');
+      body.batchSize = (state.settings && state.settings.batchSize) || 24;
+      body.concurrency = (state.settings && state.settings.concurrency) || 4;
 
       var res = await apiJson('/api/translate', { method: 'POST', body: body });
       if (!res || !res.jobId) throw new ApiError('服务未返回任务 ID', 0);
@@ -1749,11 +1705,13 @@
       job = await apiJson('/api/translate/' + encodeURIComponent(id));
     } catch (err) {
       stopJobPolling();
-      renderJobError(err.message);
+      if (state.job.view === 'map') renderMapJobError(err.message);
+      else renderJobError(err.message);
       return;
     }
     state.job.data = job;
-    renderJob(job);
+    if (state.job.view === 'map') renderMapJob(job);
+    else renderJob(job);
 
     if (job.status === 'running' || job.status === 'waiting_user' || job.status === 'done' || job.status === 'cancelled') {
       stageJobResults(job);
@@ -1805,10 +1763,17 @@
     state.job.staged = {};
     state.job.stagedDocId = null;
     if (state.doc && state.doc.id === docId) {
-      renderKvTable();
-      updateKvStats();
+      if (state.doc.kind === 'map') {
+        renderMapTable();
+        renderMapStats();
+        updateMapStatsLine();
+      } else {
+        renderKvTable();
+        updateKvStats();
+      }
     }
     updateJobResultButtons(job);
+    if (state.job.view === 'map') updateMapJobButtons(job);
     toast(count ? ('已应用 ' + fmtNumber(count) + ' 条译文') : '没有可应用的译文', count ? 'success' : 'info');
   }
 
@@ -1817,10 +1782,15 @@
     state.job.staged = {};
     state.job.stagedDocId = null;
     updateJobResultButtons(job);
+    if (state.job.view === 'map') updateMapJobButtons(job);
     toast(count ? ('已丢弃 ' + fmtNumber(count) + ' 条翻译结果') : '没有可丢弃的翻译结果', 'info');
   }
 
   function updateJobResultButtons(job) {
+    if (state.job.view === 'map') {
+      updateMapJobButtons(job);
+      return;
+    }
     var stagedCount = Object.keys(state.job.staged || {}).length;
     var applyBtn = $('#btn-job-apply');
     if (applyBtn) applyBtn.disabled = stagedCount === 0;
@@ -2008,7 +1978,9 @@
       askUserEnabled: true,
       requestTimeoutSeconds: 120,
       batchSize: 24,
-      lastWorkspace: ''
+      concurrency: 4,
+      lastWorkspace: '',
+      lastMap: ''
     };
   }
 
@@ -2060,6 +2032,7 @@
     var allow = $('#set-allow-questions'); if (allow) allow.checked = s.askUserEnabled !== false;
     var timeout = $('#set-timeout'); if (timeout) timeout.value = s.requestTimeoutSeconds || 120;
     var batch = $('#set-batch'); if (batch) batch.value = s.batchSize || 24;
+    var concurrency = $('#set-concurrency'); if (concurrency) concurrency.value = s.concurrency || 4;
     var themeChoices = $$('.theme-choice');
     themeChoices.forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-theme-value') === state.theme); });
   }
@@ -2090,6 +2063,8 @@
     var s = state.settings || defaultSettings();
     var bar = $('#sel-target-lang');
     if (bar) bar.value = s.targetLanguage || 'zh_cn';
+    var mapBar = $('#map-target-lang');
+    if (mapBar) mapBar.value = s.targetLanguage || 'zh_cn';
   }
 
   function readSettingsForm() {
@@ -2107,7 +2082,9 @@
       askUserEnabled: checked('#set-allow-questions'),
       requestTimeoutSeconds: num('#set-timeout', 120),
       batchSize: num('#set-batch', 24),
-      lastWorkspace: (state.workspace && state.workspace.path) || ((state.settings && state.settings.lastWorkspace) || '')
+      concurrency: num('#set-concurrency', 4),
+      lastWorkspace: (state.workspace && state.workspace.path) || ((state.settings && state.settings.lastWorkspace) || ''),
+      lastMap: (state.map && state.map.path) || ((state.settings && state.settings.lastMap) || '')
     };
   }
 
@@ -2119,6 +2096,7 @@
       state.settings = Object.assign(defaultSettings(), saved || {}, { llmApiKey: '', mtApiKey: '' });
       renderSettings();
       syncTargetLang();
+      if (state.map.doc && state.page === 'map') renderMapStats();
       toast('设置已保存', 'success');
     } catch (err) {
       toast('保存设置失败：' + err.message, 'error');
@@ -2207,12 +2185,807 @@
     }
   }
 
-  function bindEvents() {
+  // ----- map / resource pack localization workspace ---------------------
+  function mapIsResourcePack(kind) {
+    return (kind || state.map.kind) === 'resourcepack';
+  }
 
+  function mapNavName(kind) {
+    return mapIsResourcePack(kind) ? 'resourcepack' : 'map';
+  }
+
+  function applyMapKindUi() {
+    var pack = mapIsResourcePack();
+    var title = $('#map-page-title');
+    if (title) title.textContent = pack ? '材质包汉化' : '地图本地化';
+    var sub = $('#map-page-sub');
+    if (sub) {
+      if (pack) {
+        sub.innerHTML = '按 Minecraft 资源格式读取材质包内的 <code>assets/&lt;命名空间&gt;/lang/&lt;语言&gt;.json</code>，复用 LLM 高并发翻译与术语询问';
+      } else {
+        sub.textContent = '扫描世界存档、数据包与资源包，提取地图内的语言文件、函数指令、告示牌与实体文本';
+      }
+    }
+    var revealLabel = $('#btn-map-reveal-label');
+    if (revealLabel) revealLabel.textContent = pack ? '打开材质包位置' : '打开地图文件夹';
+    var openLabel = $('#btn-map-open-label');
+    if (openLabel) openLabel.textContent = pack ? '选择材质包 ZIP' : '选择地图目录';
+    var emptyOpenLabel = $('#btn-map-empty-open-label');
+    if (emptyOpenLabel) emptyOpenLabel.textContent = pack ? '选择材质包 ZIP' : '选择地图目录';
+    var openDir = $('#btn-map-open-dir');
+    if (openDir) openDir.hidden = !pack;
+    var emptyDir = $('#btn-map-empty-open-dir');
+    if (emptyDir) emptyDir.hidden = !pack;
+    var emptyTitle = $('#map-empty-title');
+    if (emptyTitle) emptyTitle.textContent = pack ? '还没有选择材质包' : '还没有选择地图';
+    var emptyDesc = $('#map-empty-desc');
+    if (emptyDesc) {
+      if (pack) {
+        emptyDesc.innerHTML = '选择材质包 <code>.zip</code>，或选择已解压的材质包文件夹。工具只读取 <code>assets/&lt;命名空间&gt;/lang/&lt;语言&gt;.json</code>。';
+      } else {
+        emptyDesc.innerHTML = '选择地图存档目录（包含 <code>level.dat</code>、<code>region</code> 或 <code>datapacks</code>），或直接选择数据包目录。';
+      }
+    }
+  }
+
+  function setMapKind(kind) {
+    kind = mapIsResourcePack(kind) ? 'resourcepack' : 'map';
+    if (state.map.scanId) {
+      toast('扫描正在进行，请等待完成或取消后再切换', 'warn');
+      return false;
+    }
+    if (state.job.id && state.job.timer) {
+      toast('翻译任务正在进行，请等待完成或取消后再切换', 'warn');
+      return false;
+    }
+    if (state.map.kind !== kind || (state.map.doc && (state.map.data || {}).kind !== kind)) {
+      state.map.kind = kind;
+      state.map.scanKind = null;
+      state.map.doc = null;
+      state.map.data = null;
+      state.map.byId = {};
+      state.map.selected = {};
+      state.map.q = '';
+      state.map.source = 'all';
+      state.map.onlyUntranslated = false;
+      state.map.path = '';
+      state.map.name = '';
+      if (state.doc && state.doc.kind === 'map') state.doc = null;
+      applyMapKindUi();
+      renderMapPage();
+    } else {
+      applyMapKindUi();
+    }
+    return true;
+  }
+
+  function mapShortPath(path) {
+    var text = String(path || '');
+    if (text.length <= 20) return text;
+    return text.slice(0, 10) + '…' + text.slice(-9);
+  }
+
+  function mapSourceOptions(counts) {
+    var map = {
+      lang: '语言文件', resourcepack: '材质包', function: '函数', structure: '结构', bossbar: 'Boss 栏',
+      sign: '告示牌', command_block: '命令方块', entity: '实体', item: '物品',
+      book: '成书', nbt: 'NBT', text_display: '文本展示实体', level: 'level.dat', player: '玩家数据'
+    };
+    return Object.keys(counts || {}).filter(function (k) {
+      return k !== 'total' && k !== 'translated' && k !== 'untranslated' && counts[k] > 0;
+    }).map(function (k) {
+      return { key: k, label: map[k] || k, count: counts[k] };
+    });
+  }
+
+  function setMapDocFromResult(result) {
+    var entries = (result.entries || []).map(function (item, index) {
+      var key = item.id || ('map-' + index);
+      return Object.assign({}, item, { key: key, value: item.text || '' });
+    });    var existing = {};
+    if (result.existing && typeof result.existing === 'object') {
+      Object.keys(result.existing).forEach(function (k) { existing[k] = result.existing[k]; });
+    } else {
+      entries.forEach(function (e) {
+        if (e.existing && String(e.existing).trim()) existing[e.key] = String(e.existing);
+      });
+    }
+    var byId = {};
+    entries.forEach(function (e) { byId[e.key] = e; });
+    var scanId = result.scanId || state.map.scanId || '';
+    var name = result.name || state.map.name || '地图存档';
+    var doc = {
+      id: 'map|' + scanId,
+      kind: 'map',
+      displayName: name,
+      relativePath: result.root || state.map.path || '',
+      sourceLanguage: 'en_us',
+      targetLanguage: (state.settings && state.settings.targetLanguage) || 'zh_cn',
+      format: 'map',
+      entries: entries,
+      existing: existing
+    };
+    state.map.data = result;
+    state.map.doc = doc;
+    state.map.byId = byId;
+    state.map.path = result.root || state.map.path;
+    state.map.name = name;
+    state.map.kind = result.kind || state.map.scanKind || state.map.kind || 'map';
+    state.map.scanKind = null;
+    state.map.q = '';
+    state.map.source = 'all';
+    state.map.onlyUntranslated = false;
+    state.map.selected = {};
+    state.map.limit = ROW_LIMIT_STEP;
+    state.doc = doc;
+    var search = $('#map-search');
+    if (search) search.value = '';
+    var source = $('#map-source-filter');
+    if (source) source.value = 'all';
+    var only = $('#map-only-untranslated');
+    if (only) only.checked = false;
+    var target = $('#map-target-lang');
+    if (target) target.value = doc.targetLanguage;
+    applyMapKindUi();
+    renderMapSourceFilter();
+    renderMapPage();
+  }
+
+  function renderMapSourceFilter() {
+    var select = $('#map-source-filter');
+    var data = state.map.data || {};
+    var sources = mapSourceOptions(data.stats || {});
+    if (!select) return;
+    select.innerHTML = '<option value="all">全部来源</option>' + sources.map(function (s) {
+      return '<option value="' + escapeHtml(s.key) + '">' + escapeHtml(s.label) + '（' + fmtNumber(s.count) + '）</option>';
+    }).join('');
+    select.value = state.map.source || 'all';
+  }
+
+  function renderMapPage() {
+    var empty = $('#map-empty');
+    var body = $('#map-body');
+    var panel = $('#map-scan-panel');
+    if (!empty || !body) return;
+    applyMapKindUi();
+    if (!state.map.doc) {
+      empty.hidden = false;
+      body.hidden = true;
+      if (panel && !state.map.scanId) panel.hidden = true;
+      return;
+    }
+    empty.hidden = true;
+    body.hidden = false;
+    if (panel && !state.map.scanId) panel.hidden = true;
+    renderMapStats();
+    renderMapTable();
+    updateMapStatsLine();
+    updateMapJobButtons(state.job.data);
+  }
+
+  function renderMapStats() {
+    var node = $('#map-stats');
+    var doc = state.map.doc;
+    if (!node || !doc) return;
+    var entries = doc.entries || [];
+    var done = 0;
+    entries.forEach(function (e) { if (targetOf(e.key)) done += 1; });
+    var data = state.map.data || {};
+    var sources = mapSourceOptions(data.stats || {});
+    node.innerHTML =
+      statCard('globe', '', fmtNumber(entries.length), '候选文本') +
+      statCard('layers', '', fmtNumber(sources.length), '来源类型') +
+      statCard('check-circle', 'ok', fmtNumber(done), '已有/已翻译') +
+      statCard('alert', entries.length - done > 0 ? 'warn' : 'ok', fmtNumber(entries.length - done), '未翻译');
+    var hint = $('#map-concurrency-hint');
+    if (hint) {
+      var settings = state.settings || defaultSettings();
+      hint.textContent = '并发 ' + (settings.concurrency || 4) + ' 批 · 每批 ' + (settings.batchSize || 24) + ' 条';
+    }
+  }
+
+  function filteredMapEntries() {
+    var doc = state.map.doc;
+    if (!doc) return [];
+    var q = state.map.q.trim().toLowerCase();
+    var source = state.map.source;
+    var out = [];
+    (doc.entries || []).forEach(function (e) {
+      if (source !== 'all' && e.source !== source) return;
+      var target = targetOf(e.key);
+      if (state.map.onlyUntranslated && target) return;
+      if (q) {
+        var hay = [e.displayPath || e.file || '', e.fileName || '', e.keyLabel || '', e.key || '', e.value || '', target].join('\n').toLowerCase();
+        if (hay.indexOf(q) < 0) return;
+      }
+      out.push(e);
+    });
+    return out;
+  }
+
+  function renderMapTable() {
+    var tbody = $('#map-tbody');
+    var emptyHint = $('#map-rows-empty');
+    var doc = state.map.doc;
+    if (!tbody) return;
+    if (!doc) return;
+    var rows = filteredMapEntries();
+    var limited = rows.slice(0, state.map.limit);
+    if (!limited.length) {
+      tbody.innerHTML = '';
+      if (emptyHint) emptyHint.hidden = false;
+    } else {
+      if (emptyHint) emptyHint.hidden = true;
+      tbody.innerHTML = limited.map(function (e) {
+        var target = targetOf(e.key);
+        var isSelected = !!state.map.selected[e.key];
+        var fullPath = e.displayPath || e.file || '';
+        var title = fullPath + (e.openPath ? '\n' + e.openPath : '');
+        return '<tr data-key="' + escapeHtml(e.key) + '">' +
+          '<td class="col-check"><label class="checkbox"><input type="checkbox" class="map-check"' + (isSelected ? ' checked' : '') + ' /></label></td>' +
+          '<td class="map-col-path"><button type="button" class="map-path-btn" data-open-file="' + escapeHtml(e.file || '') + '" title="' + escapeHtml(title) + '"><span class="map-path-prefix">path:</span>' + escapeHtml(mapShortPath(fullPath)) + '</button></td>' +
+          '<td class="map-col-file"><span class="map-file-name" title="' + escapeHtml(e.openPath || e.file || '') + '">' + escapeHtml(e.fileName || e.file || '') + '</span></td>' +
+          '<td class="map-col-source"><span class="badge badge-mono">' + escapeHtml(e.sourceLabel || e.source || '') + '</span></td>' +
+          '<td class="map-col-key"><code class="map-key" title="' + escapeHtml(e.key || '') + '">' + escapeHtml(e.keyLabel || e.key || e.kind || 'text') + '</code></td>' +
+          '<td class="map-col-original"><div class="map-original" title="' + escapeHtml(e.value || '') + '">' + escapeHtml(e.value || '') + '</div></td>' +
+          '<td class="map-col-target"><textarea class="kv-input map-input" rows="1" spellcheck="false" placeholder="输入译文…" data-key="' + escapeHtml(e.key) + '">' + escapeHtml(target) + '</textarea></td>' +
+          '<td class="col-status"><span class="kv-status">' + statusBadge(target, e.key) + '</span></td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    var scroll = tbody.closest('.table-scroll');
+    var more = $('#map-more');
+    if (!more && scroll) {
+      more = document.createElement('div');
+      more.id = 'map-more';
+      more.className = 'table-more';
+      scroll.appendChild(more);
+    }
+    if (more) {
+      if (rows.length > limited.length) {
+        more.hidden = false;
+        more.innerHTML = '<button type="button" class="btn btn-sm" id="btn-map-more">继续加载 ' +
+          Math.min(ROW_LIMIT_STEP, rows.length - limited.length) + ' 条（共 ' + rows.length + ' 条）</button>';
+      } else {
+        more.hidden = true;
+        more.innerHTML = '';
+      }
+    }
+
+    requestAnimationFrame(function () {
+      $$('#map-tbody .map-input').forEach(autosize);
+    });
+    var all = $('#map-select-all');
+    if (all) {
+      var selectedCount = Object.keys(state.map.selected).filter(function (k) { return state.map.selected[k]; }).length;
+      all.checked = rows.length > 0 && rows.every(function (e) { return !!state.map.selected[e.key]; });
+      all.indeterminate = selectedCount > 0 && !all.checked;
+    }
+  }
+
+  function updateMapStatsLine() {
+    var doc = state.map.doc;
+    var node = $('#map-stats-line');
+    if (!doc || !node) return;
+    var entries = doc.entries || [];
+    var rows = filteredMapEntries();
+    var done = 0;
+    entries.forEach(function (e) { if (targetOf(e.key)) done += 1; });
+    node.textContent = '共 ' + fmtNumber(entries.length) + ' 条 · 当前筛选 ' + fmtNumber(rows.length) +
+      ' 条 · 已翻译 ' + fmtNumber(done) + ' · 未翻译 ' + fmtNumber(entries.length - done);
+  }
+
+  function selectedMapEntries() {
+    var doc = state.map.doc;
+    if (!doc) return [];
+    var selected = [];
+    (doc.entries || []).forEach(function (e) {
+      if (state.map.selected[e.key]) selected.push(e);
+    });
+    return selected;
+  }
+
+  async function openMapFile(file) {
+    var scanId = state.map.scanId || (state.map.data && state.map.data.scanId);
+    if (!scanId) { toast('扫描任务信息已过期，请重新扫描', 'warn'); return; }
+    try {
+      var res = await apiJson('/api/map/reveal', { method: 'POST', body: { scanId: scanId, file: file } });
+      if (res && res.path) toast('已定位到：' + shortPath(res.path), 'success');
+    } catch (err) {
+      toast('打开文件位置失败：' + err.message, 'error');
+    }
+  }
+
+  async function startMapScan(path, kind) {
+    var scanKind = kind || state.map.kind || 'map';
+    var packMode = mapIsResourcePack(scanKind);
+    if (!path) {
+      toast(packMode ? '请选择一个材质包 .zip 或文件夹' : '请选择一个地图目录', 'warn');
+      return;
+    }
+    if (state.map.scanId) { toast('已有扫描正在进行，请先等待或取消', 'warn'); return; }
+    state.map.kind = scanKind;
+    showPage('map', mapNavName(scanKind));
+    state.map.cancelling = false;
+    state.map.doc = null;
+    state.map.data = null;
+    state.map.byId = {};
+    state.map.selected = {};
+    state.map.scanKind = scanKind;
+    state.doc = null;
+    var empty = $('#map-empty');
+    if (empty) empty.hidden = true;
+    var body = $('#map-body');
+    if (body) body.hidden = true;
+    var panel = $('#map-scan-panel');
+    if (panel) panel.hidden = false;
+    var heading = $('#map-scan-title');
+    if (heading) heading.textContent = packMode ? '正在扫描材质包…' : '正在扫描地图…';
+    applyMapKindUi();
+    renderMapScanProgress({ phaseLabel: '准备扫描…', percent: 0, elapsedMs: 0 }, true);
+    try {
+      var res = await apiJson('/api/map/scan', {
+        method: 'POST',
+        body: {
+          path: path,
+          kind: scanKind,
+          includeWorld: !packMode,
+          includePacks: true
+        }
+      });
+      if (!res || !res.scanId) throw new ApiError('服务未返回扫描 ID', 0);
+      state.map.scanId = res.scanId;
+      state.map.path = res.path || path;
+      state.map.name = res.name || '';
+      state.map.kind = res.kind || scanKind;
+      state.map.scanKind = state.map.kind;
+      startMapScanPolling();
+      toast(packMode ? '材质包扫描已启动' : '地图扫描已启动', 'success');
+    } catch (err) {
+      state.map.scanId = null;
+      state.map.scanKind = null;
+      if (panel) panel.hidden = true;
+      if (empty) empty.hidden = false;
+      renderMapPage();
+      toast((packMode ? '启动材质包扫描失败：' : '启动地图扫描失败：') + err.message, 'error');
+    }
+  }
+
+  function startMapScanPolling() {
+    stopMapScanPolling();
+    state.map.timer = setInterval(pollMapScan, SCAN_POLL_MS);
+    pollMapScan();
+  }
+
+  function stopMapScanPolling() {
+    if (state.map.timer) {
+      clearInterval(state.map.timer);
+      state.map.timer = null;
+    }
+  }
+
+  async function pollMapScan() {
+    var id = state.map.scanId;
+    if (!id) return;
+    var progress;
+    try {
+      progress = await apiJson('/api/map/scan/' + encodeURIComponent(id));
+    } catch (err) {
+      stopMapScanPolling();
+      state.map.scanId = null;
+      renderMapScanProgress({ phaseLabel: '扫描状态读取失败', error: err.message, percent: 0 }, false);
+      return;
+    }
+    renderMapScanProgress(progress, false);
+    if (progress.status === 'done') {
+      stopMapScanPolling();
+      state.map.scanId = null;
+      try {
+        var result = await apiJson('/api/map/scan/' + encodeURIComponent(id) + '/result');
+        setMapDocFromResult(result);
+        var panel = $('#map-scan-panel');
+        if (panel) panel.hidden = true;
+        var packMode = mapIsResourcePack(result.kind);
+        toast((packMode ? '材质包扫描完成：共 ' : '地图扫描完成：共 ') + fmtNumber((result.entries || []).length) + ' 条候选文本', 'success');
+      } catch (err) {
+        renderMapScanProgress({ phaseLabel: '扫描完成，但结果读取失败', error: err.message, percent: 100 }, false);
+      }
+      return;
+    }
+    if (progress.status === 'error' || progress.status === 'cancelled') {
+      stopMapScanPolling();
+      state.map.scanId = null;
+      state.map.cancelling = false;
+      var packMode = mapIsResourcePack(state.map.scanKind);
+      state.map.scanKind = null;
+      var empty = $('#map-empty');
+      if (empty) empty.hidden = false;
+      renderMapPage();
+      if (progress.status === 'cancelled') toast((packMode ? '材质包扫描已取消' : '地图扫描已取消'), 'info');
+      else toast((packMode ? '材质包扫描失败：' : '地图扫描失败：') + (progress.error || '未知错误'), 'error');
+    }
+  }
+
+  function renderMapScanProgress(progress, starting) {
+    var panel = $('#map-scan-panel');
+    if (!panel) return;
+    panel.hidden = false;
+    var percent = Math.max(0, Math.min(100, progress.percent || 0));
+    var status = progress.status || (starting ? 'starting' : 'running');
+    var dot = $('#map-scan-dot');
+    if (dot) {
+      dot.className = 'job-dot';
+      if (status === 'error') dot.classList.add('error');
+      else if (status === 'done') dot.classList.add('done');
+      else dot.classList.add('running');
+    }
+    var heading = $('#map-scan-title');
+    if (heading) {
+      var packMode = mapIsResourcePack(state.map.scanKind || state.map.kind);
+      heading.textContent = status === 'error' ? (packMode ? '材质包扫描失败' : '地图扫描失败') :
+        (status === 'done' ? (packMode ? '材质包扫描完成' : '地图扫描完成') :
+          (state.map.name ? '正在扫描：' + state.map.name : (packMode ? '正在扫描材质包…' : '正在扫描地图…')));
+    }
+    var detail = $('#map-scan-detail');
+    if (detail) {
+      var text = progress.phaseLabel || '准备中';
+      if (progress.error) text = progress.error;
+      if (progress.candidateCount) text += ' · 已发现 ' + fmtNumber(progress.candidateCount) + ' 条';
+      if (progress.elapsedMs) text += ' · ' + (progress.elapsedMs / 1000).toFixed(1) + 's';
+      detail.textContent = text;
+    }
+    var pct = $('#map-scan-percent');
+    if (pct) pct.textContent = percent + '%';
+    var fill = $('#map-scan-progress-fill');
+    if (fill) {
+      fill.style.width = percent + '%';
+      fill.className = 'progress-fill' + (status === 'done' ? ' done' : (status === 'error' ? ' error' : ''));
+    }
+    var meta = $('#map-scan-meta');
+    if (meta) {
+      var parts = [];
+      var warnings = progress.warnings || [];
+      if (warnings.length) parts.push('警告 ' + warnings.length + ' 条');
+      if (progress.total) parts.push('候选 ' + fmtNumber(progress.total) + ' 条');
+      meta.textContent = parts.join(' · ');
+    }
+    var cancel = $('#btn-map-scan-cancel');
+    if (cancel) cancel.disabled = !!state.map.cancelling || status === 'done' || status === 'error' || status === 'cancelled';
+  }
+
+  async function cancelMapScan() {
+    var id = state.map.scanId;
+    if (!id || state.map.cancelling) return;
+    state.map.cancelling = true;
+    var cancel = $('#btn-map-scan-cancel');
+    if (cancel) cancel.disabled = true;
+    try {
+      await api('/api/map/scan/' + encodeURIComponent(id) + '/cancel', { method: 'POST' });
+      toast(mapIsResourcePack(state.map.scanKind) ? '已请求取消材质包扫描' : '已请求取消地图扫描', 'info');
+    } catch (err) {
+      state.map.cancelling = false;
+      toast('取消扫描失败：' + err.message, 'error');
+    }
+  }
+
+  function pickerInitialPath() {
+    return state.map.path || (state.settings && state.settings.lastMap) || '';
+  }
+
+  function parentPath(path) {
+    var text = String(path || '');
+    var slash = Math.max(text.lastIndexOf('\\'), text.lastIndexOf('/'));
+    return slash > 0 ? text.slice(0, slash) : '';
+  }
+
+  async function chooseMapFolder() {
+    if (mapIsResourcePack()) {
+      await chooseResourcePackFile();
+      return;
+    }
+    var path = await pickNativeFolder(pickerInitialPath(), '选择地图存档或数据包目录');
+    if (path) await startMapScan(path, 'map');
+  }
+
+  async function chooseResourcePackFile() {
+    var path = await pickNativeFile(pickerInitialPath(), '选择材质包 ZIP');
+    if (path) await startMapScan(path, 'resourcepack');
+  }
+
+  async function chooseResourcePackFolder() {
+    var initial = pickerInitialPath();
+    var path = await pickNativeFolder(parentPath(initial) || initial, '选择已解压的材质包文件夹');
+    if (path) await startMapScan(path, 'resourcepack');
+  }
+
+  async function rescanMap() {
+    var path = state.map.path || (state.map.data && state.map.data.root);
+    var kind = state.map.kind || ((state.map.data && state.map.data.kind) || 'map');
+    if (!path) { chooseMapFolder(); return; }
+    await startMapScan(path, kind);
+  }
+
+  async function revealMapFolder() {
+    var path = state.map.path || (state.map.data && state.map.data.root);
+    if (!path) { toast(mapIsResourcePack() ? '还没有选择材质包' : '还没有选择地图目录', 'warn'); return; }
+    try {
+      await apiJson('/api/workspace/reveal', { method: 'POST', body: { path: path } });
+    } catch (err) {
+      toast('打开位置失败：' + err.message, 'error');
+    }
+  }
+
+  function setMapJobPanelVisible(visible) {
+    var panel = $('#map-job-panel');
+    if (panel) panel.hidden = !visible;
+  }
+
+  function updateMapJobButtons(job) {
+    var stagedCount = Object.keys(state.job.staged || {}).length;
+    var apply = $('#btn-map-job-apply');
+    if (apply) apply.disabled = stagedCount === 0;
+    var discard = $('#btn-map-job-discard');
+    if (discard) discard.disabled = stagedCount === 0;
+    var restore = $('#btn-map-job-restore-all');
+    if (restore) restore.disabled = !state.map.doc;
+  }
+
+  function renderMapJob(job) {
+    setMapJobPanelVisible(true);
+    var status = job.status || 'queued';
+    var dot = $('#map-job-dot');
+    if (dot) {
+      dot.className = 'job-dot';
+      if (status === 'running') dot.classList.add('running');
+      else if (status === 'done') dot.classList.add('done');
+      else if (status === 'error') dot.classList.add('error');
+      else if (status === 'waiting_user') dot.classList.add('waiting');
+    }
+    var statusNode = $('#map-job-status');
+    if (statusNode) statusNode.textContent = JOB_STATUS_TEXT[status] || status;
+    var total = job.total || 0;
+    var processed = (job.done || 0) + (job.failed || 0) + (job.skipped || 0);
+    if (processed > total) processed = total;
+    var percent = total > 0 ? Math.round((processed / total) * 100) : 0;
+    var fill = $('#map-job-progress-fill');
+    if (fill) {
+      fill.style.width = percent + '%';
+      fill.className = 'progress-fill' + (status === 'done' ? ' done' : (status === 'error' ? ' error' : ''));
+    }
+    var count = $('#map-job-count');
+    if (count) count.textContent = processed + ' / ' + total;
+    var detail = $('#map-job-detail');
+    if (detail) {
+      var parts = [];
+      if (job.mode) parts.push(job.mode === 'mt' ? '机翻' : 'LLM');
+      if (job.provider) parts.push(job.provider);
+      if (job.failed) parts.push('失败 ' + job.failed);
+      if (job.skipped) parts.push('跳过 ' + job.skipped);
+      if (state.settings && state.settings.concurrency) parts.push('并发 ' + state.settings.concurrency);
+      detail.textContent = parts.join(' · ');
+    }
+    var cancel = $('#btn-map-job-cancel');
+    if (cancel) cancel.disabled = !(status === 'running' || status === 'queued' || status === 'waiting_user');
+    updateMapJobButtons(job);
+  }
+
+  function renderMapJobError(message) {
+    var status = $('#map-job-status');
+    if (status) status.textContent = '出错';
+    var dot = $('#map-job-dot');
+    if (dot) dot.className = 'job-dot error';
+    var detail = $('#map-job-detail');
+    if (detail) detail.textContent = message || '';
+    var fill = $('#map-job-progress-fill');
+    if (fill) fill.className = 'progress-fill error';
+  }
+
+  async function startMapTranslate() {
+    var doc = state.map.doc;
+    if (!doc) { toast(mapIsResourcePack() ? '请先扫描一个材质包' : '请先扫描一个地图', 'warn'); return; }
+    if (state.job.id && state.job.timer) { toast('已有翻译任务正在运行', 'warn'); return; }
+    var selected = selectedMapEntries();
+    var rows = selected.length ? selected : filteredMapEntries().filter(function (e) { return !targetOf(e.key); });
+    if (!rows.length) { toast('没有可翻译的条目，请调整筛选或勾选条目', 'warn'); return; }
+    var btn = $('#btn-map-start-translate');
+    if (btn) btn.disabled = true;
+    try {
+      state.job.view = 'map';
+      state.doc = doc;
+      var body = {
+        kind: 'map',
+        documentId: doc.id,
+        displayName: doc.displayName,
+        sourceLanguage: doc.sourceLanguage,
+        targetLanguage: val('#map-target-lang') || doc.targetLanguage || 'zh_cn',
+        mode: (state.mapMode === 'machine' || state.mapMode === 'mt') ? 'mt' : 'llm',
+        provider: (state.settings && state.settings.mtProvider) || 'auto',
+        context: doc.displayName,
+        entries: rows.map(function (e) { return { key: e.key, value: e.value }; }),
+        existing: doc.existing || {},
+        glossary: parseGlossary(val('#map-glossary-input')),
+        askUser: !!(state.settings && state.settings.askUserEnabled),
+        skipExisting: checked('#map-skip-existing'),
+        batchSize: (state.settings && state.settings.batchSize) || 24,
+        concurrency: (state.settings && state.settings.concurrency) || 4
+      };
+      var res = await apiJson('/api/translate', { method: 'POST', body: body });
+      if (!res || !res.jobId) throw new ApiError('服务未返回任务 ID', 0);
+      state.job.id = res.jobId;
+      state.job.docId = doc.id;
+      state.job.data = null;
+      state.job.modalShown = {};
+      state.job.staged = {};
+      state.job.stagedDocId = null;
+      setMapJobPanelVisible(true);
+      renderMapJob({ id: res.jobId, status: 'queued', total: rows.length, done: 0, failed: 0, skipped: 0, items: [], questions: [] });
+      startJobPolling();
+      toast('地图翻译已启动：' + fmtNumber(rows.length) + ' 条，' + body.concurrency + ' 批并发', 'success');
+    } catch (err) {
+      toast('启动地图翻译失败：' + err.message, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  function bindMapUi() {
+    var openBtn = $('#btn-map-open');
+    if (openBtn) openBtn.addEventListener('click', chooseMapFolder);
+    var emptyBtn = $('#btn-map-empty-open');
+    if (emptyBtn) emptyBtn.addEventListener('click', chooseMapFolder);
+    var openDirBtn = $('#btn-map-open-dir');
+    if (openDirBtn) openDirBtn.addEventListener('click', chooseResourcePackFolder);
+    var emptyDirBtn = $('#btn-map-empty-open-dir');
+    if (emptyDirBtn) emptyDirBtn.addEventListener('click', chooseResourcePackFolder);
+    var rescan = $('#btn-map-rescan');
+    if (rescan) rescan.addEventListener('click', rescanMap);
+    var reveal = $('#btn-map-reveal');
+    if (reveal) reveal.addEventListener('click', revealMapFolder);
+    var scanCancel = $('#btn-map-scan-cancel');
+    if (scanCancel) scanCancel.addEventListener('click', cancelMapScan);
+
+    var search = $('#map-search');
+    if (search) search.addEventListener('input', debounce(function () {
+      state.map.q = search.value;
+      state.map.limit = ROW_LIMIT_STEP;
+      renderMapTable();
+      updateMapStatsLine();
+    }, 140));
+    var source = $('#map-source-filter');
+    if (source) source.addEventListener('change', function () {
+      state.map.source = source.value || 'all';
+      state.map.limit = ROW_LIMIT_STEP;
+      renderMapTable();
+      updateMapStatsLine();
+    });
+    var only = $('#map-only-untranslated');
+    if (only) only.addEventListener('change', function () {
+      state.map.onlyUntranslated = only.checked;
+      state.map.limit = ROW_LIMIT_STEP;
+      renderMapTable();
+      updateMapStatsLine();
+    });
+    var selectAll = $('#map-select-all');
+    if (selectAll) selectAll.addEventListener('change', function () {
+      var rows = filteredMapEntries();
+      rows.forEach(function (e) { state.map.selected[e.key] = selectAll.checked; });
+      renderMapTable();
+    });
+    var tbody = $('#map-tbody');
+    if (tbody) {
+      tbody.addEventListener('click', function (ev) {
+        var open = ev.target.closest('.map-path-btn');
+        if (open) { ev.preventDefault(); openMapFile(open.getAttribute('data-open-file')); }
+      });
+      tbody.addEventListener('input', function (ev) {
+        var input = ev.target;
+        if (!input.classList || !input.classList.contains('map-input')) return;
+        var key = input.getAttribute('data-key');
+        var doc = state.map.doc;
+        if (!doc || key === null) return;
+        var targets = state.targets[doc.id] || (state.targets[doc.id] = {});
+        var value = input.value;
+        if (value === '' && has(doc.existing || {}, key)) targets[key] = '';
+        else targets[key] = value;
+        input.classList.toggle('dirty', value !== (has(doc.existing || {}, key) ? doc.existing[key] : ''));
+        var row = input.closest('tr');
+        if (row) {
+          var status = row.querySelector('.kv-status');
+          if (status) status.innerHTML = statusBadge(value, key);
+          row.classList.toggle('is-untranslated', !value);
+        }
+        autosize(input);
+        renderMapStats();
+        updateMapStatsLine();
+      });
+      tbody.addEventListener('change', function (ev) {
+        var box = ev.target;
+        if (!box.classList || !box.classList.contains('map-check')) return;
+        var row = box.closest('tr');
+        if (!row) return;
+        var key = row.getAttribute('data-key');
+        state.map.selected[key] = box.checked;
+      });
+    }
+    var tableScroll = $('#map-body .table-scroll');
+    if (tableScroll) {
+      tableScroll.addEventListener('click', function (ev) {
+        var btn = ev.target.closest('#btn-map-more');
+        if (!btn) return;
+        state.map.limit += ROW_LIMIT_STEP;
+        renderMapTable();
+      });
+    }
+    var copySelected = $('#btn-map-copy-selected');
+    if (copySelected) copySelected.addEventListener('click', function () {
+      var keys = Object.keys(state.map.selected).filter(function (k) { return state.map.selected[k]; });
+      if (!keys.length) { toast('请先勾选要复制的条目', 'warn'); return; }
+      var lines = keys.map(function (k) {
+        var meta = state.map.byId[k] || {};
+        return (meta.displayPath || meta.file || k) + '\t' + (meta.value || '') + '\t' + targetOf(k);
+      });
+      copyText(lines.join('\n')).then(function () { toast('已复制 ' + keys.length + ' 条', 'success'); });
+    });
+    var copyAll = $('#btn-map-copy-all');
+    if (copyAll) copyAll.addEventListener('click', function () {
+      var doc = state.map.doc;
+      if (!doc) return;
+      var obj = {};
+      (doc.entries || []).forEach(function (e) {
+        var v = targetOf(e.key);
+        if (v) obj[e.key] = v;
+      });
+      var count = Object.keys(obj).length;
+      if (!count) { toast('还没有任何译文', 'warn'); return; }
+      copyText(JSON.stringify(obj, null, 2)).then(function () { toast('已复制 ' + count + ' 条译文（JSON）', 'success'); });
+    });
+
+    $$('#map-seg-mode .seg-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        state.mapMode = btn.getAttribute('data-value');
+        $$('#map-seg-mode .seg-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+      });
+    });
+    var glossaryToggle = $('#btn-map-glossary-toggle');
+    if (glossaryToggle) glossaryToggle.addEventListener('click', function () {
+      var panel = $('#map-glossary-panel');
+      if (panel) panel.hidden = !panel.hidden;
+    });
+    var glossaryClose = $('#btn-map-glossary-close');
+    if (glossaryClose) glossaryClose.addEventListener('click', function () {
+      var panel = $('#map-glossary-panel');
+      if (panel) panel.hidden = true;
+    });
+    var start = $('#btn-map-start-translate');
+    if (start) start.addEventListener('click', startMapTranslate);
+    var jobCancel = $('#btn-map-job-cancel');
+    if (jobCancel) jobCancel.addEventListener('click', cancelJob);
+    var jobClose = $('#btn-map-job-close');
+    if (jobClose) jobClose.addEventListener('click', function () { setMapJobPanelVisible(false); });
+    var jobApply = $('#btn-map-job-apply');
+    if (jobApply) jobApply.addEventListener('click', function () { applyJobResults(state.job.data); });
+    var jobDiscard = $('#btn-map-job-discard');
+    if (jobDiscard) jobDiscard.addEventListener('click', function () { discardJobResults(state.job.data); });
+    var jobRestore = $('#btn-map-job-restore-all');
+    if (jobRestore) jobRestore.addEventListener('click', function () {
+      confirmDialog('全部还原', '将清空当前地图的<b>所有译文</b>（含本次翻译结果），是否继续？', '全部还原')
+        .then(function (ok) { if (ok) restoreTargets(); });
+    });
+  }
+
+  function bindEvents() {
     $$('.nav-item').forEach(function (item) {
       item.addEventListener('click', function () {
         var page = item.getAttribute('data-page');
         if (page === 'settings') { showPage('settings'); return; }
+        if (page === 'resourcepack') {
+          if (setMapKind('resourcepack')) showPage('map', 'resourcepack');
+          return;
+        }
+        if (page === 'map') {
+          if (!setMapKind('map')) { showPage('map', mapNavName(state.map.scanKind || state.map.kind)); return; }
+        }
         showPage(page);
         if (page === 'mods') { backToModList(); }
       });
@@ -2233,8 +3006,6 @@
     if (sidePick) sidePick.addEventListener('click', function () { pickWorkspaceFolder(); });
     var revealBtn = $('#btn-sidebar-reveal');
     if (revealBtn) revealBtn.addEventListener('click', revealWorkspace);
-    var browseBtn = $('#btn-sidebar-browse');
-    if (browseBtn) browseBtn.addEventListener('click', function () { openBrowseModal(); });
 
     var emptyPick = $('#btn-empty-pick');
     if (emptyPick) emptyPick.addEventListener('click', function () { pickWorkspaceFolder(); });
@@ -2312,46 +3083,6 @@
     var ftbOverlay = $('#btn-ftb-overlay');
     if (ftbOverlay) ftbOverlay.addEventListener('click', function () { openListOverlay('ftb'); });
 
-    var browseList = $('#browse-list');
-    if (browseList) {
-      browseList.addEventListener('click', function (ev) {
-        var item = ev.target.closest('[data-path]');
-        if (!item) return;
-        state.browse.selected = item.getAttribute('data-path');
-        $$('#browse-list .browse-item').forEach(function (n) { n.classList.toggle('selected', n === item); });
-        updateBrowseFooter();
-      });
-      browseList.addEventListener('dblclick', function (ev) {
-        var item = ev.target.closest('[data-path]');
-        if (!item) return;
-        browseTo(item.getAttribute('data-path'));
-      });
-    }
-    var browseUp = $('#browse-up');
-    if (browseUp) browseUp.addEventListener('click', function () {
-      if (state.browse.parent) browseTo(state.browse.parent);
-    });
-    var browseRefresh = $('#browse-refresh');
-    if (browseRefresh) browseRefresh.addEventListener('click', function () { browseTo(state.browse.path); });
-    var browseDrive = $('#browse-drive');
-    if (browseDrive) browseDrive.addEventListener('change', function () { browseTo(browseDrive.value); });
-    var browseConfirm = $('#browse-confirm');
-    if (browseConfirm) browseConfirm.addEventListener('click', async function () {
-      if (isScanning()) {
-        toast('正在解析中，请先取消当前解析再重新选择', 'warn');
-        return;
-      }
-      var target = state.browse.selected || state.browse.path;
-      if (!target) { toast('请选择一个目录', 'warn'); return; }
-      closeModal('overlay-browse');
-      await openWorkspacePath(target);
-    });
-    var browseSuggest = $('#browse-suggest');
-    if (browseSuggest) browseSuggest.addEventListener('click', function (ev) {
-      var chip = ev.target.closest('[data-suggest]');
-      if (chip) browseTo(chip.getAttribute('data-suggest'));
-    });
-
     var pickList = $('#pick-file-list');
     if (pickList) {
       pickList.addEventListener('click', function (ev) {
@@ -2408,7 +3139,7 @@
     var invalidBrowse = $('#btn-ws-invalid-browse');
     if (invalidBrowse) invalidBrowse.addEventListener('click', function () {
       closeModal('overlay-ws-invalid');
-      openBrowseModal();
+      pickWorkspaceFolder();
     });
 
     var packScope = $('#pack-scope');
@@ -2611,6 +3342,8 @@
     $$('.theme-choice').forEach(function (btn) {
       btn.addEventListener('click', function () { applyTheme(btn.getAttribute('data-theme-value')); });
     });
+
+    bindMapUi();
   }
 
   function bindLangList(sel, kind) {
@@ -2773,7 +3506,6 @@
     openWorkspacePath: openWorkspacePath,
     isScanning: isScanning,
     state: state,
-    openBrowseModal: openBrowseModal,
     showInvalidWorkspace: showInvalidWorkspace
   };
 })();

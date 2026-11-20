@@ -18,29 +18,18 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: '10.0.x'
-
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
+          python-version: '3.13'
 
-      - name: Restore
-        run: dotnet restore DstMcI18nTool.csproj
+      - name: Install PyInstaller
+        run: python -m pip install -r python/requirements.txt
 
-      - name: Publish
-        run: >
-          dotnet publish DstMcI18nTool.csproj
-          -c Release
-          -r win-x64
-          -o release
-          -p:SelfContained=true
-          -p:PublishSingleFile=false
-          -p:IncludeNativeLibrariesForSelfExtract=false
-          --nologo
+      - name: Build
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File python/build.ps1 -Python python -OutDir release
 
       - name: Smoke test
         shell: pwsh
@@ -52,14 +41,11 @@ jobs:
           if ($out -notmatch 'DST-MC-I18n-Tool') { throw "帮助输出里没有程序名，发布可能不完整" }
           Write-Host '冒烟测试通过'
 
-      - name: Pack
-        run: python tools/pack.py release DST-MC-I18n-Tool.zip
-
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: DST-MC-I18n-Tool
-          path: DST-MC-I18n-Tool.zip
+          path: release/DST-MC-I18n-Tool.exe
 
       - name: Publish Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -68,8 +54,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = '${{ github.ref_name }}'
-          $asset = 'DST-MC-I18n-Tool.zip'
-          if (-not (Test-Path $asset)) { throw "找不到压缩包：$asset" }
+          $asset = 'release/DST-MC-I18n-Tool.exe'
+          if (-not (Test-Path $asset)) { throw "找不到发布产物：$asset" }
 
           gh release view $tag 2>$null
           if ($LASTEXITCODE -ne 0) {

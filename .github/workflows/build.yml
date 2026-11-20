@@ -37,7 +37,10 @@ jobs:
           $exe = 'release\DST-MC-I18n-Tool.exe'
           if (-not (Test-Path $exe)) { throw "找不到发布产物：$exe" }
           $out = & $exe --help 2>&1 | Out-String
-          if ($LASTEXITCODE -ne 0) { throw "程序 --help 退出码是 $LASTEXITCODE" }
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host $out
+            throw "程序 --help 退出码是 $LASTEXITCODE"
+          }
           if ($out -notmatch 'DST-MC-I18n-Tool') { throw "帮助输出里没有程序名，发布可能不完整" }
           Write-Host '冒烟测试通过'
 

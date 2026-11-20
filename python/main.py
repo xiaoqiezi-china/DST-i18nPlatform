@@ -65,7 +65,18 @@ HELP_TEXT = """DST MC I18n Tool v1.1.4 — Minecraft 模组本地化批处理工
 """
 
 
+def _configure_console() -> None:
+    """避免在非中文代码页的 Windows 控制台因中文输出直接崩溃。"""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            if stream is not None and hasattr(stream, "reconfigure"):
+                stream.reconfigure(errors="replace")
+        except (AttributeError, OSError, ValueError):
+            pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    _configure_console()
     args = parse_args(list(sys.argv[1:] if argv is None else argv))
     if args["show_help"]:
         print(HELP_TEXT)
